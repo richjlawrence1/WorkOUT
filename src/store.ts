@@ -1,0 +1,213 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { latestWeight } from './lib/checkin';
+import { dayKey, uid, weekStart } from './lib/dates';
+import { generateMealPlan, swapMeal } from './lib/mealplan';
+import { targets } from './lib/nutrition';
+import { EX, generatePlan, prescription } from './lib/plan';
+import { buildEntries } from './lib/progression';
+import type {
+  CheckIn, DiaryEntry, Food, FoodPrefs, Macros, MealPlan, Plan, Profile, Session, SessionEntry, Slot, WeightEntry,
+} from './types';
+
+interface Active {
+  startedAt: string;
+  dayId: string;
+  dayName: string;
+  entries: SessionEntry[];
+}
+
+interface State {
+  hydrated: boolean;
+  profile: Profile | null;
+  onboardedAt: string | null;
+  plan: Plan | null;
+  planSeed: number;
+  nextDay: number;
+  sessions: Session[];
+  active: Active | null;
+  weights: WeightEntry[];
+  checkins: CheckIn[];
+  kcalAdjust: number;
+  foodPrefs: FoodPrefs;
+  favMeals: string[];
+  mealPlan: MealPlan | null;
+  diary: Record<string, DiaryEntry[]>;
+  recentFoods: Food[];
+
+  completeOnboarding: (p: Profile) => void;
+  updateProfile: (patch: Partial<Profile>, regenerate?: boolean) => void;
+  regeneratePlan: () => void;
+  swapExercise: (dayId: string, index: number, exId: string) => void;
+  startWorkout: (dayIndex: number) => void;
+  updateActive: (entries: SessionEntry[]) => void;
+  finishWorkout: () => Session | null;
+  discardWorkout: () => void;
+  logWeight: (kg: number, date?: string) => void;
+  addCheckIn: (ci: CheckIn) => void;
+  setFoodPrefs: (p: FoodPrefs) => void;
+  toggleFav: (mealId: string) => void;
+  buildMealPlan: () => void;
+  swapPlanned: (dayIdx: number, idx: number, toId?: string) => void;
+  addDiary: (date: string, e: Omit<DiaryEntry, 'id'>, food?: Food) => void;
+  removeDiary: (date: string, id: string) => void;
+  reset: () => void;
+}
+
+const initial = {
+  profile: null,
+  onboardedAt: null,
+  plan: null,
+  planSeed: 0,
+  nextDay: 0,
+  sessions: [],
+  active: null,
+  weights: [],
+  checkins: [],
+  kcalAdjust: 0,
+  foodPrefs: { diet: 'any', dislikes: [], snacks: 1, set: false } as FoodPrefs,
+  favMeals: [],
+  mealPlan: null,
+  diary: {},
+  recentFoods: [],
+};
+
+export const useStore = create<State>()(
+  persist(
+    (set, get) => ({
+      hydrated: false,
+      ...initial,
+
+      completeOnboarding: (p) =>
+        set({
+          profile: p,
+          onboardedAt: new Date().toISOString(),
+          plan: generatePlan(p),
+          nextDay: 0,
+          weights: [{ date: dayKey(), kg: p.startWeightKg }],
+        }),
+
+      updateProfile: (patch, regenerate) => {
+        const profile = { ...(get().profile as Profile), ...patch };
+        set(regenerate ? { profile, plan: generatePlan(profile, get().planSeed), nextDay: 0 } : { profile });
+      },
+
+      regeneratePlan: () => {
+        const { profile, planSeed } = get();
+        if (!profile) return;
+        set({ plan: generatePlan(profile, planSeed + 1), planSeed: planSeed + 1, nextDay: 0 });
+      },
+
+      swapExercise: (dayId, index, exId) => {
+        const { plan, profile } = get();
+        if (!plan || !profile) return;
+        const ex = EX[exId];
+        set({
+          plan: {
+            ...plan,
+            days: plan.days.map((d) =>
+              d.id !== dayId
+                ? d
+                : { ...d, exercises: d.exercises.map((pe, i) => (i === index ? { exId, slot: ex.slot as Slot, ...prescription(ex, profile) } : pe)) }
+            ),
+          },
+        });
+      },
+
+      startWorkout: (dayIndex) => {
+        const { plan, sessions } = get();
+        const day = plan?.days[dayIndex];
+        if (!day) return;
+        set({ active: { startedAt: new Date().toISOString(), dayId: day.id, dayName: day.name, entries: buildEntries(day, sessions) } });
+      },
+
+      updateActive: (entries) => {
+        const a = get().active;
+        if (a) set({ active: { ...a, entries } });
+      },
+
+      finishWorkout: () => {
+        const { active, sessions, plan } = get();
+        if (!active) return null;
+        const entries = active.entries
+          .map((e) => ({ ...e, sets: e.sets.filter((st) => st.done) }))
+          .filter((e) => e.sets.length);
+        if (!entries.length) {
+          set({ active: null });
+          return null;
+        }
+        const sn: Session = {
+          id: uid(),
+          date: active.startedAt,
+          dayId: active.dayId,
+          dayName: active.dayName,
+          durationSec: Math.round((Date.now() - new Date(active.startedAt).getTime()) / 1000),
+          entries,
+        };
+        const idx = plan?.days.findIndex((d) => d.id === active.dayId) ?? -1;
+        set({
+          active: null,
+          sessions: [...sessions, sn],
+          nextDay: plan && idx >= 0 ? (idx + 1) % plan.days.length : get().nextDay,
+        });
+        return sn;
+      },
+
+      discardWorkout: () => set({ active: null }),
+
+      logWeight: (kg, date = dayKey()) =>
+        set({ weights: [...get().weights.filter((w) => w.date !== date), { date, kg }].sort((a, b) => a.date.localeCompare(b.date)) }),
+
+      addCheckIn: (ci) => set({ checkins: [...get().checkins, ci], kcalAdjust: get().kcalAdjust + ci.kcalDelta }),
+
+      setFoodPrefs: (p) => set({ foodPrefs: { ...p, set: true } }),
+
+      toggleFav: (mealId) => {
+        const favs = get().favMeals;
+        set({ favMeals: favs.includes(mealId) ? favs.filter((x) => x !== mealId) : [...favs, mealId] });
+      },
+
+      buildMealPlan: () => {
+        const t = selectTargets(get());
+        if (t) set({ mealPlan: generateMealPlan(get().foodPrefs, get().favMeals, t) });
+      },
+
+      swapPlanned: (dayIdx, idx, toId) => {
+        const { mealPlan, foodPrefs } = get();
+        const t = selectTargets(get());
+        if (mealPlan && t) set({ mealPlan: swapMeal(mealPlan, dayIdx, idx, foodPrefs, t, toId) });
+      },
+
+      addDiary: (date, e, food) => {
+        const diary = get().diary;
+        const recent = food ? [food, ...get().recentFoods.filter((x) => x.id !== food.id)].slice(0, 30) : get().recentFoods;
+        set({ diary: { ...diary, [date]: [...(diary[date] ?? []), { ...e, id: uid() }] }, recentFoods: recent });
+      },
+
+      removeDiary: (date, id) => {
+        const diary = get().diary;
+        set({ diary: { ...diary, [date]: (diary[date] ?? []).filter((x) => x.id !== id) } });
+      },
+
+      reset: () => set({ ...initial }),
+    }),
+    {
+      name: 'workout-v1',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: ({ hydrated, ...rest }) => rest,
+      onRehydrateStorage: () => () => useStore.setState({ hydrated: true }),
+    }
+  )
+);
+
+export const selectWeight = (st: Pick<State, 'weights' | 'profile'>): number =>
+  latestWeight(st.weights, st.profile?.startWeightKg ?? 75);
+
+export const selectTargets = (st: Pick<State, 'weights' | 'profile' | 'kcalAdjust'>): Macros | null =>
+  st.profile ? targets(st.profile, selectWeight(st), st.kcalAdjust) : null;
+
+export const sessionsThisWeek = (sessions: Session[]): number => {
+  const ws = weekStart().getTime();
+  return sessions.filter((sn) => new Date(sn.date).getTime() >= ws).length;
+};
