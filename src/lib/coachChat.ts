@@ -35,7 +35,8 @@ How to answer:
 
 How the app's rules work:
 - Progression: when every set of a lift reaches the top of its rep range, the weight goes up next session and reps restart at the bottom. Otherwise the weight holds and the target is one more rep. Three sessions stuck at one weight adds a set. Two sessions below the rep range drops the weight 10% and removes a set.
-- Nutrition: calories come from estimated maintenance adjusted for the goal. The weekly check-in compares the 7-day average weight with the week before and moves calories by 150 if the rate of change is outside the healthy band.`;
+- Weekly check-in: compares the 7-day average weight with the week before and moves one lever at a time. For fat loss that is too slow the order is: follow the plan first, then hit the step target, then do the prescribed cardio, then cardio goes up 5-10 minutes per session (to a 45 minute ceiling), then steps go up, and only then calories drop by 150. Losing too fast removes cardio or adds 150 calories. For muscle gain, calories move by 150.
+- Training blocks: if no main lift improves in a week the big lifts move to two fewer reps (heavier) for three weeks; poor sleep and energy together trigger a recovery week with one set fewer.`;
 
 /** A compact snapshot of everything the coach should know, rebuilt for each conversation. */
 export function buildContext(): string {
@@ -55,6 +56,9 @@ export function buildContext(): string {
   lines.push(`Daily targets: ${t.kcal} kcal, ${t.protein} g protein, ${t.carbs} g carbs, ${t.fat} g fat (check-in adjustment so far: ${st.kcalAdjust} kcal).`);
   lines.push(`Eaten today: ${eaten.kcal} kcal, ${Math.round(eaten.protein)} g protein. Items: ${today.map((e) => e.name).join(', ') || 'nothing logged'}`);
   lines.push(`Last 7 days of food: ${wk.daysLogged} days logged${wk.avgKcal != null ? `, average ${wk.avgKcal} kcal and ${wk.avgProtein} g protein, protein target hit on ${wk.proteinHitDays} days` : ''}.`);
+  lines.push(`Coach's current prescription: ${st.cardioMins} min cardio after each session, ${st.stepTarget} steps a day, training block: ${st.phase}.`);
+  const since = Date.now() - 7 * 864e5;
+  lines.push(`Cardio in the last 7 days: ${st.cardioLog.filter((x) => new Date(x.date).getTime() > since).map((x) => `${x.date} ${x.type} ${x.minutes}min`).join('; ') || 'none logged'}. Steps logged: ${Object.entries(st.steps).slice(-7).map(([d, n]) => `${d} ${n}`).join('; ') || 'none'}.`);
   lines.push(`Sessions this week: ${sessionsThisWeek(st.sessions)} of ${p.daysPerWeek}. Total sessions logged: ${st.sessions.length}.`);
 
   if (st.plan) {

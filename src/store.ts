@@ -8,12 +8,15 @@ import { targets } from './lib/nutrition';
 import { DEFAULT_REMINDERS, type ReminderPrefs } from './lib/notify';
 import { deletePhoto } from './lib/photos';
 import { EX, generatePlan, prescription } from './lib/plan';
+import { type Phase, initialCardio, initialSteps, phasedDay } from './lib/prescription';
 import { buildEntries } from './lib/progression';
 import type {
-  CheckIn, DiaryEntry, Food, FoodPrefs, Macros, MealPlan, PhotoSet, Plan, Profile, Session, SessionEntry, Slot, WeightEntry,
+  CardioLog, CheckIn, DiaryEntry, Food, FoodPrefs, Macros, MealPlan, PhotoSet, Plan, Profile, Session, SessionEntry, Slot, WeightEntry,
 } from './types';
 
 interface Active {
+  warmupDone?: boolean;
+  cardio?: { minutes: number; type: string } | null;
   startedAt: string;
   dayId: string;
   dayName: string;
@@ -40,6 +43,12 @@ interface State {
   photos: PhotoSet[];
   reminders: ReminderPrefs;
   supermarket: string;
+  cardioMins: number;
+  stepTarget: number;
+  steps: Record<string, number>;
+  cardioLog: CardioLog[];
+  phase: Phase;
+  phaseWeeks: number;
 
   completeOnboarding: (p: Profile) => void;
   updateProfile: (patch: Partial<Profile>, regenerate?: boolean) => void;
@@ -47,6 +56,10 @@ interface State {
   swapExercise: (dayId: string, index: number, exId: string) => void;
   startWorkout: (dayIndex: number, entries?: SessionEntry[]) => void;
   setReminders: (r: ReminderPrefs) => void;
+  patchActive: (p: Partial<Pick<Active, 'warmupDone' | 'cardio'>>) => void;
+  logSteps: (n: number, date?: string) => void;
+  logCardio: (minutes: number, type: string) => void;
+  removeCardio: (id: string) => void;
   setSupermarket: (s: string) => void;
   updateActive: (entries: SessionEntry[]) => void;
   finishWorkout: () => Session | null;
@@ -82,6 +95,12 @@ const initial = {
   photos: [] as PhotoSet[],
   reminders: DEFAULT_REMINDERS,
   supermarket: '',
+  cardioMins: 15,
+  stepTarget: 8000,
+  steps: {} as Record<string, number>,
+  cardioLog: [] as CardioLog[],
+  phase: 'standard' as Phase,
+  phaseWeeks: 0,
 };
 
 export const useStore = create<State>()(
@@ -97,6 +116,8 @@ export const useStore = create<State>()(
           plan: generatePlan(p),
           nextDay: 0,
           weights: [{ date: dayKey(), kg: p.startWeightKg }],
+          cardioMins: initialCardio(p.goal),
+          stepTarget: initialSteps(p.goal),
         }),
 
       updateProfile: (patch, regenerate) => {
@@ -127,11 +148,19 @@ export const useStore = create<State>()(
       },
 
       setReminders: (reminders) => set({ reminders }),
+
+      patchActive: (p) => {
+        const a = get().active;
+        if (a) set({ active: { ...a, ...p } });
+      },
+      logSteps: (n, date = dayKey()) => set({ steps: { ...get().steps, [date]: Math.max(0, Math.round(n)) } }),
+      logCardio: (minutes, type) => set({ cardioLog: [...get().cardioLog, { id: uid(), date: dayKey(), minutes: Math.round(minutes), type }] }),
+      removeCardio: (id) => set({ cardioLog: get().cardioLog.filter((x) => x.id !== id) }),
       setSupermarket: (supermarket) => set({ supermarket }),
 
       startWorkout: (dayIndex, entries) => {
-        const { plan, sessions, profile } = get();
-        const day = plan?.days[dayIndex];
+        const { plan, sessions, profile, phase } = get();
+        const day = plan?.days[dayIndex] ? phasedDay(plan.days[dayIndex], phase) : undefined;
         if (!day) return;
         set({ active: { startedAt: new Date().toISOString(), dayId: day.id, dayName: day.name, entries: entries ?? buildEntries(day, sessions, profile?.goal) } });
       },
@@ -144,6 +173,8 @@ export const useStore = create<State>()(
       finishWorkout: () => {
         const { active, sessions, plan } = get();
         if (!active) return null;
+        // Cardio ticked off in the session counts even if no sets were logged.
+        if (active.cardio && active.cardio.minutes > 0) get().logCardio(active.cardio.minutes, active.cardio.type);
         const entries = active.entries
           .map((e) => ({ ...e, sets: e.sets.filter((st) => st.done) }))
           .filter((e) => e.sets.length);
@@ -173,7 +204,18 @@ export const useStore = create<State>()(
       logWeight: (kg, date = dayKey()) =>
         set({ weights: [...get().weights.filter((w) => w.date !== date), { date, kg }].sort((a, b) => a.date.localeCompare(b.date)) }),
 
-      addCheckIn: (ci) => set({ checkins: [...get().checkins, ci], kcalAdjust: get().kcalAdjust + ci.kcalDelta }),
+      addCheckIn: (ci) => {
+        const st = get();
+        const phase = ci.phase ?? st.phase;
+        set({
+          checkins: [...st.checkins, ci],
+          kcalAdjust: st.kcalAdjust + ci.kcalDelta,
+          cardioMins: Math.max(0, st.cardioMins + (ci.cardioDelta ?? 0)),
+          stepTarget: st.stepTarget + (ci.stepDelta ?? 0),
+          phase,
+          phaseWeeks: phase === st.phase ? st.phaseWeeks + 1 : 0,
+        });
+      },
 
       setPhoto: (date, angle, ref) => {
         const photos = get().photos;

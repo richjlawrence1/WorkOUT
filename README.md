@@ -16,6 +16,9 @@ A personal trainer and nutrition coach in one app. Built with Expo (React Native
 - **Reminders** – weigh-in, check-in, food log, training, and a rest-timer alert that reaches the lock screen and a paired watch.
 - **Weekly report** – a shareable summary card.
 - **Extras** – plate loading and warm-up sets for barbell lifts, stones/pounds for body weight, preferred supermarket in food search, estimated weekly shop cost.
+- **Cardio, steps and warm-ups** – every session opens with a warm-up and closes with prescribed cardio; a daily step target is logged by hand.
+- **Coach-led check-in** – the weekly review moves one lever at a time (steps, cardio, rep block, calories) and explains each change.
+- **Dashboard** – goal, distance to go and forecast date, six weekly stats, and the coach's current prescription.
 - **Weigh-ins and weekly check-in** – a weekly review of weight trend, sessions and intake that retunes your calories.
 - **Meal planner** – a seven-day plan fitted to your calorie and protein targets. Exclude foods you don't like, heart favourites to have them repeat, swap meals, and get a shopping list.
 - **Food diary** – scan a barcode (Open Food Facts, good UK supermarket coverage including Aldi), search by name, or enter values manually.

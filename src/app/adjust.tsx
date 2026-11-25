@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { AREAS, Area, adjustSession } from '../lib/adjust';
 import { EX } from '../lib/plan';
+import { phasedDay } from '../lib/prescription';
 import { useStore } from '../store';
 import { c, s } from '../theme';
 import { Body, Button, Card, Chip, ChipRow, Eyebrow, Header, Row, Screen, Small, Title } from '../ui';
@@ -11,12 +12,12 @@ const TIMES: [number | null, string][] = [[null, 'Full session'], [45, '45 min']
 
 export default function Adjust() {
   const params = useLocalSearchParams<{ day?: string }>();
-  const { plan, profile, sessions, nextDay, startWorkout } = useStore();
+  const { plan, profile, sessions, nextDay, startWorkout, phase } = useStore();
   const [areas, setAreas] = useState<Area[]>([]);
   const [minutes, setMinutes] = useState<number | null>(null);
   const [lowEnergy, setLowEnergy] = useState(false);
   const idx = Number.isFinite(Number(params.day)) ? Number(params.day) : nextDay;
-  const day = plan?.days[idx];
+  const day = plan?.days[idx] ? phasedDay(plan.days[idx], phase) : undefined;
 
   const result = useMemo(
     () => (day && profile ? adjustSession(day, sessions, profile, { areas, minutes, lowEnergy }) : null),

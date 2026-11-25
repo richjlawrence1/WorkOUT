@@ -5,16 +5,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ExerciseDemo } from '../../components/ExerciseDemo';
 import { EX, alternatives, estMinutes } from '../../lib/plan';
 import { nextTarget } from '../../lib/progression';
+import { PHASE_LABEL, phasedDay } from '../../lib/prescription';
 import { useStore } from '../../store';
 import { c, f, radius, s } from '../../theme';
 import { Body, Button, Card, Chip, ChipRow, Eyebrow, IconButton, Row, Screen, Small, Title } from '../../ui';
 
 export default function Train() {
-  const { profile, plan, nextDay, sessions, active, startWorkout, swapExercise, regeneratePlan } = useStore();
+  const { profile, plan, nextDay, sessions, active, startWorkout, swapExercise, regeneratePlan, phase, cardioMins } = useStore();
   const [sel, setSel] = useState(nextDay);
   const [swapping, setSwapping] = useState<number | null>(null);
   if (!profile || !plan) return null;
-  const day = plan.days[Math.min(sel, plan.days.length - 1)];
+  const day = phasedDay(plan.days[Math.min(sel, plan.days.length - 1)], phase);
   const inPlan = day.exercises.map((e) => e.exId);
 
   return (
@@ -37,7 +38,8 @@ export default function Train() {
       <Row style={{ justifyContent: 'space-between', marginTop: s.xl, marginBottom: s.md }}>
         <View>
           <Text style={st.dayName}>{day.name}</Text>
-          <Small>{day.focus} · about {estMinutes(day)} min</Small>
+          <Small>{day.focus} · about {estMinutes(day)} min{phase !== 'standard' ? ` · ${PHASE_LABEL[phase]}` : ''}</Small>
+          <Small>5 min warm-up first{cardioMins ? `, ${cardioMins} min cardio to finish` : ''}</Small>
         </View>
       </Row>
 

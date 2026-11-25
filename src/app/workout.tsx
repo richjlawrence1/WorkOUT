@@ -5,12 +5,14 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ExerciseDemo } from '../components/ExerciseDemo';
 import { plateLine, usesBarbell, warmupSets } from '../lib/barbell';
 import { cancelRestAlert, scheduleRestAlert } from '../lib/notify';
+import { dayKey } from '../lib/dates';
 import { EX } from '../lib/plan';
+import { CARDIO_TYPES, warmupFor } from '../lib/prescription';
 import { sessionPRs, sessionVolume, setFeedback } from '../lib/progression';
 import { useStore } from '../store';
 import { c, f, radius, s } from '../theme';
 import type { Session, SessionEntry, SetLog } from '../types';
-import { Body, Button, Card, Eyebrow, IconButton, Row, Rule, Screen, Small, Stat, Title, tap, thud } from '../ui';
+import { Body, Button, Card, Chip, ChipRow, Eyebrow, Field, IconButton, Row, Rule, Screen, Small, Stat, Title, tap, thud } from '../ui';
 
 const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 
@@ -146,6 +148,8 @@ export default function Workout() {
       <Title>{active.dayName}</Title>
       <View style={st.track}><View style={[st.fill, { width: `${(doneCount / Math.max(1, total)) * 100}%` }]} /></View>
 
+      <WarmupCard />
+
       {entries.map((e, ei) => {
         const ex = EX[e.exId];
         const isCurrent = ei === currentIdx;
@@ -204,7 +208,76 @@ export default function Workout() {
           </Card>
         );
       })}
+      <CardioCard />
     </Screen>
+  );
+}
+
+function WarmupCard() {
+  const active = useStore((x) => x.active);
+  const plan = useStore((x) => x.plan);
+  const patchActive = useStore((x) => x.patchActive);
+  const day = plan?.days.find((d) => d.id === active?.dayId);
+  if (!active || !day) return null;
+  if (active.warmupDone) {
+    return (
+      <Row style={{ gap: s.sm, marginTop: s.lg }}>
+        <Feather name="check-circle" size={15} color={c.gold} />
+        <Small style={{ color: c.text }}>Warm-up done</Small>
+      </Row>
+    );
+  }
+  return (
+    <Card style={{ marginTop: s.md }}>
+      <Eyebrow>Warm-up · 5 min</Eyebrow>
+      <Small style={{ marginTop: 4 }}>Raises your temperature and gets the joints you're about to load moving. Don't skip it.</Small>
+      {warmupFor(day).map((line, i) => (
+        <Row key={i} style={{ alignItems: 'flex-start', marginTop: s.md }}>
+          <Text style={st.wuNum}>{i + 1}</Text>
+          <Body style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>{line}</Body>
+        </Row>
+      ))}
+      <Button label="Warm-up done" icon="check" small variant="ghost" style={{ marginTop: s.lg, alignSelf: 'flex-start' }} onPress={() => { thud(); patchActive({ warmupDone: true }); }} />
+    </Card>
+  );
+}
+
+function CardioCard() {
+  const active = useStore((x) => x.active);
+  const target = useStore((x) => x.cardioMins);
+  const goal = useStore((x) => x.profile?.goal);
+  const patchActive = useStore((x) => x.patchActive);
+  const [mins, setMins] = useState(String(target));
+  const [type, setType] = useState(CARDIO_TYPES[0]);
+  if (!active || !target) return null;
+  const m = parseInt(mins, 10);
+  if (active.cardio) {
+    return (
+      <Card style={{ marginTop: s.md, opacity: 0.7 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Row style={{ gap: s.sm }}>
+            <Feather name="check-circle" size={15} color={c.gold} />
+            <Body>{active.cardio.type} · {active.cardio.minutes} min</Body>
+          </Row>
+          <Pressable accessibilityRole="button" onPress={() => patchActive({ cardio: null })}><Small style={{ color: c.gold }}>Edit</Small></Pressable>
+        </Row>
+      </Card>
+    );
+  }
+  return (
+    <Card style={{ marginTop: s.md }}>
+      <Eyebrow>Cardio to finish · {target} min</Eyebrow>
+      <Small style={{ marginTop: 4, color: c.text }}>
+        {goal === 'lose' || goal === 'recomp'
+          ? 'Steady pace where you can still talk. This is what keeps the weight coming down without cutting more food. I add minutes at your check-in only if progress slows.'
+          : 'Easy pace. Enough to keep your heart and recovery in good shape without eating into your lifting.'}
+      </Small>
+      <ChipRow style={{ marginTop: s.md }}>{CARDIO_TYPES.slice(0, 5).map((x) => <Chip key={x} label={x} selected={type === x} onPress={() => setType(x)} />)}</ChipRow>
+      <Row style={{ gap: s.md, marginTop: s.md }}>
+        <Field value={mins} onChangeText={setMins} numeric suffix="min" style={{ flex: 1 }} />
+        <Button label="Done" icon="check" small disabled={!(m > 0 && m <= 300)} onPress={() => { thud(); patchActive({ cardio: { minutes: m, type } }); }} />
+      </Row>
+    </Card>
   );
 }
 
@@ -275,6 +348,7 @@ function NumInput({ value, onChange, done, integer, label, placeholder }: { valu
 }
 
 function Summary({ sn, prs }: { sn: Session; prs: { exId: string; e1rm: number }[] }) {
+  const cardio = useStore((x) => x.cardioLog.filter((l) => l.date === dayKey(new Date(sn.date))).reduce((m, l) => m + l.minutes, 0));
   const sets = sn.entries.reduce((n, e) => n + e.sets.length, 0);
   return (
     <Screen footer={<Button label="Done" onPress={() => leave()} />}>
@@ -310,12 +384,14 @@ function Summary({ sn, prs }: { sn: Session; prs: { exId: string; e1rm: number }
           </View>
         ))}
       </Card>
+      {cardio ? <Small style={{ marginTop: s.md, color: c.gold }}>Plus {cardio} minutes of cardio logged.</Small> : null}
       <Body muted style={{ marginTop: s.lg }}>Your next session's targets have been updated from today's numbers.</Body>
     </Screen>
   );
 }
 
 const st = StyleSheet.create({
+  wuNum: { width: 22, color: c.gold, fontFamily: f.serif, fontSize: 14, lineHeight: 20 },
   timer: { color: c.cream, fontFamily: f.medium, fontSize: 15, letterSpacing: 1, fontVariant: ['tabular-nums'] },
   track: { height: 2, borderRadius: 1, backgroundColor: c.line, marginTop: s.lg, overflow: 'hidden' },
   fill: { height: 2, backgroundColor: c.gold },

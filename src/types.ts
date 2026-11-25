@@ -148,6 +148,21 @@ export interface PhotoSet {
   back?: string;
 }
 
+export interface CardioLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  minutes: number;
+  type: string;
+}
+
+/** One lever the coach moved at a check-in. */
+export interface PlanChange {
+  label: string;
+  from: string;
+  to: string;
+  why: string;
+}
+
 export interface CheckIn {
   date: string;
   weightKg: number | null;
@@ -161,6 +176,10 @@ export interface CheckIn {
   adherence: number;
   notes: string;
   kcalDelta: number;
+  cardioDelta?: number;
+  stepDelta?: number;
+  phase?: 'standard' | 'heavy' | 'recovery';
+  changes?: PlanChange[];
   verdict: string;
   actions: string[];
 }

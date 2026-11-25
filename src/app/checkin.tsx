@@ -53,8 +53,23 @@ export default function CheckInScreen() {
         {weeklyInsights({ profile, targets: t, sessions, diary, weights: st0.weights, todayMeals: st0.mealPlan?.days[todayIndex()] ?? [] }).map((i) => (
           <InsightCard key={i.id} insight={i} style={{ marginTop: s.md }} />
         ))}
-        <Card gold style={{ marginTop: s.md }}>
-          <Eyebrow>Plan for the week ahead</Eyebrow>
+        {result.changes?.length ? (
+          <Card gold style={{ marginTop: s.md }}>
+            <Eyebrow>What I'm changing</Eyebrow>
+            {result.changes.map((ch, i) => (
+              <View key={ch.label}>
+                {i ? <Rule style={{ marginVertical: s.md }} /> : <View style={{ height: s.md }} />}
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Body style={{ fontFamily: f.semi }}>{ch.label}</Body>
+                  <Body><Body muted>{ch.from}  →  </Body><Body style={{ color: c.gold, fontFamily: f.semi }}>{ch.to}</Body></Body>
+                </Row>
+                <Small style={{ marginTop: 4, color: c.text }}>{ch.why}</Small>
+              </View>
+            ))}
+          </Card>
+        ) : null}
+        <Card style={{ marginTop: s.md }}>
+          <Eyebrow>Notes for the week ahead</Eyebrow>
           {result.actions.map((x, i) => (
             <View key={i}>
               {i ? <Rule style={{ marginVertical: s.md }} /> : <View style={{ height: s.md }} />}
@@ -68,6 +83,13 @@ export default function CheckInScreen() {
             <PhotoCompare />
           </Card>
         ) : null}
+        <Card style={{ marginTop: s.md }}>
+          <Eyebrow>Cardio and steps</Eyebrow>
+          <Row style={{ marginTop: s.md }}>
+            <Stat value={String(st0.cardioMins)} unit="min" label="After each session" />
+            <Stat value={st0.stepTarget.toLocaleString()} label="Steps a day" />
+          </Row>
+        </Card>
         <Card style={{ marginTop: s.md }}>
           <Eyebrow>Daily targets{result.kcalDelta ? ' · updated' : ''}</Eyebrow>
           <Row style={{ marginTop: s.md }}>
@@ -87,7 +109,11 @@ export default function CheckInScreen() {
         <Button
           label="Review my week"
           onPress={() => {
-            const ci = buildCheckIn(profile, useStore.getState().weights, sessions, diary, { ...a, notes: notes.trim() });
+            const now = useStore.getState();
+            const ci = buildCheckIn(profile, now.weights, sessions, diary, { ...a, notes: notes.trim() }, {
+              cardioMins: now.cardioMins, stepTarget: now.stepTarget, steps: now.steps, cardioLog: now.cardioLog,
+              phase: now.phase, phaseWeeks: now.phaseWeeks, kcalTarget: selectTargets(now)!.kcal,
+            });
             addCheckIn(ci);
             if (ci.kcalDelta && useStore.getState().mealPlan) useStore.getState().buildMealPlan();
             thud();

@@ -14,6 +14,8 @@ import { EX, estMinutes } from '../../lib/plan';
 import { sessionBrief } from '../../lib/progression';
 import { todayInsights, weeklyInsights } from '../../lib/insights';
 import { InsightCard } from '../../components/InsightCard';
+import { CoachPlan, GoalHero, MoveLogger, StatGrid } from '../../components/Dashboard';
+import { phasedDay } from '../../lib/prescription';
 import { selectTargets, sessionsThisWeek, useStore } from '../../store';
 import { c, f, s } from '../../theme';
 import { Bar, Body, Button, Card, Eyebrow, Ring, Row, Screen, Small, Title } from '../../ui';
@@ -25,7 +27,8 @@ export default function Today() {
 
   const t = selectTargets(st0)!;
   const eaten = sumMacros(diary[dayKey()] ?? []);
-  const day = plan.days[nextDay] ?? plan.days[0];
+  const rawDay = plan.days[nextDay] ?? plan.days[0];
+  const day = phasedDay(rawDay, st0.phase);
   const done = sessionsThisWeek(sessions);
   const trainedToday = sessions.some((sn) => dayKey(new Date(sn.date)) === dayKey());
   const meals = mealPlan?.days[todayIndex()] ?? [];
@@ -35,10 +38,13 @@ export default function Today() {
   return (
     <Screen>
       <Eyebrow>{longDate(new Date())}</Eyebrow>
-      <Title style={{ marginTop: s.sm }}>{greeting()}{profile.name ? `,\n${profile.name}` : ''}</Title>
+      <Title style={{ marginTop: s.sm, fontSize: 26, lineHeight: 30 }}>{greeting()}{profile.name ? `, ${profile.name}` : ''}</Title>
+
+      <GoalHero />
+      <StatGrid />
 
       {checkInDue(checkins, onboardedAt) && (
-        <Card gold onPress={() => router.push('/checkin')} style={{ marginTop: s.xl }}>
+        <Card gold onPress={() => router.push('/checkin')} style={{ marginTop: s.md }}>
           <Row>
             <View style={{ flex: 1 }}>
               <Eyebrow>Weekly check-in</Eyebrow>
@@ -63,8 +69,11 @@ export default function Today() {
         </Row>
       </Card>
 
+      <View style={{ marginTop: s.md }}><CoachPlan /></View>
+      <View style={{ marginTop: s.md }}><MoveLogger /></View>
+
       {/* Training */}
-      <Card style={{ marginTop: s.xl, padding: 0, overflow: 'hidden' }}>
+      <Card style={{ marginTop: s.md, padding: 0, overflow: 'hidden' }}>
         {day.exercises[0] ? <ExerciseDemo id={day.exercises[0].exId} rounded={false} animate={false} style={{ aspectRatio: 2.1, opacity: 0.55 }} /> : null}
         <View style={{ padding: s.lg }}>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -72,7 +81,7 @@ export default function Today() {
             <Small>{done} of {profile.daysPerWeek} this week</Small>
           </Row>
           <Text style={st.sessionName}>{active ? active.dayName : day.name}</Text>
-          <Small>{day.focus} · {day.exercises.length} exercises · about {estMinutes(day)} min</Small>
+          <Small>{day.focus} · {day.exercises.length} exercises · about {estMinutes(day)} min{st0.cardioMins ? ` + ${st0.cardioMins} min cardio` : ''}</Small>
           <View style={st.dots}>
             {Array.from({ length: profile.daysPerWeek }, (_, i) => <View key={i} style={[st.dot, i < done && st.dotOn]} />)}
           </View>
@@ -92,12 +101,12 @@ export default function Today() {
             label={active ? 'Resume session' : trainedToday ? 'Train again' : 'Begin session'}
             variant={trainedToday && !active ? 'ghost' : 'gold'}
             onPress={() => {
-              if (!active) st0.startWorkout(plan.days.indexOf(day));
+              if (!active) st0.startWorkout(plan.days.indexOf(rawDay));
               router.push('/workout');
             }}
           />
           {!active ? (
-            <Button label="Sore, tired or short on time?" variant="quiet" icon="sliders" small onPress={() => router.push({ pathname: '/adjust', params: { day: String(plan.days.indexOf(day)) } })} style={{ marginTop: s.xs }} />
+            <Button label="Sore, tired or short on time?" variant="quiet" icon="sliders" small onPress={() => router.push({ pathname: '/adjust', params: { day: String(plan.days.indexOf(rawDay)) } })} style={{ marginTop: s.xs }} />
           ) : null}
           <View style={{ marginTop: s.md }}>
             {day.exercises.slice(0, 3).map((pe) => (
