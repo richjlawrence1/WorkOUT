@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
+import { MealImage } from '../../components/MealImage';
 import { MEAL } from '../../data/meals';
 import { dayKey } from '../../lib/dates';
 import { scale } from '../../lib/nutrition';
@@ -32,6 +33,7 @@ export default function MealDetail() {
       }
     >
       <Header title="Recipe" right={<IconButton icon="heart" label={fav ? 'Remove favourite' : 'Add favourite'} color={fav ? c.gold : c.faint} onPress={() => toggleFav(m.id)} />} />
+      <MealImage id={m.id} style={{ aspectRatio: 3 / 2, borderRadius: 16, marginBottom: s.xl }} />
       <Eyebrow style={{ textTransform: 'uppercase' }}>{m.slot} · {m.mins} min</Eyebrow>
       <Title style={{ marginTop: 4 }}>{m.name}</Title>
       {fav ? <Small style={{ color: c.gold, marginTop: 6 }}>A favourite. This repeats in your weekly plan.</Small> : null}

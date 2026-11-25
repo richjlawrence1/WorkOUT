@@ -18,9 +18,11 @@ export const c = {
 };
 
 export const f = {
-  serif: 'CormorantGaramond_500Medium',
-  serifSemi: 'CormorantGaramond_600SemiBold',
-  serifItalic: 'CormorantGaramond_500Medium_Italic',
+  // Display face: bold geometric sans. (Keys keep their original names.)
+  serif: 'Outfit_700Bold',
+  serifSemi: 'Outfit_700Bold',
+  serifItalic: 'Outfit_500Medium',
+  heavy: 'Outfit_800ExtraBold',
   sans: 'Inter_400Regular',
   medium: 'Inter_500Medium',
   semi: 'Inter_600SemiBold',

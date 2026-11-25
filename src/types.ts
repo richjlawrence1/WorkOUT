@@ -67,7 +67,11 @@ export interface SessionEntry {
   exId: string;
   repMin: number;
   repMax: number;
-  note?: string; // progression note shown during the session
+  note?: string; // today's instruction
+  why?: string; // coach's reasoning
+  last?: string | null; // what happened last time
+  goal?: string; // what the exercise is building towards
+  trend?: 'up' | 'same' | 'down' | 'new' | 'volume';
   sets: SetLog[];
 }
 export interface Session {
@@ -133,6 +137,13 @@ export interface DiaryEntry extends Macros {
   name: string;
   detail: string;
   slot: MealSlot;
+}
+
+export interface PhotoSet {
+  date: string; // YYYY-MM-DD
+  front?: string;
+  side?: string;
+  back?: string;
 }
 
 export interface CheckIn {

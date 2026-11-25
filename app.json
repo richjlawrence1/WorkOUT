@@ -10,7 +10,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.workout.trainer",
       "infoPlist": {
-        "NSCameraUsageDescription": "WorkOUT uses the camera to scan food barcodes."
+        "NSCameraUsageDescription": "WorkOUT uses the camera to scan food barcodes and take your progress photos."
       }
     },
     "android": {
@@ -43,7 +43,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "WorkOUT uses the camera to scan food barcodes."
+          "cameraPermission": "WorkOUT uses the camera to scan food barcodes and take your progress photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "WorkOUT uses the camera to take your progress photos.",
+          "photosPermission": "WorkOUT lets you choose progress photos from your library."
         }
       ]
     ],

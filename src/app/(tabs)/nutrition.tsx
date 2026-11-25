@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MealImage } from '../../components/MealImage';
 import { MEAL } from '../../data/meals';
 import { DAYS_MON, addDays, dayKey, fromKey, longDate } from '../../lib/dates';
 import { dayMacros, plannedMacros, todayIndex } from '../../lib/mealplan';
@@ -151,7 +152,11 @@ function Plan() {
         const fav = favMeals.includes(m.id);
         const wasLogged = logged === `${day}-${i}`;
         return (
-          <Card key={`${pm.mealId}-${i}`} style={{ marginTop: s.md }}>
+          <Card key={`${pm.mealId}-${i}`} style={{ marginTop: s.md, padding: 0, overflow: 'hidden' }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`${m.name} recipe`} onPress={() => router.push({ pathname: '/meal/[id]', params: { id: m.id, servings: String(pm.servings) } })}>
+              <MealImage id={m.id} style={{ aspectRatio: pm.slot === 'snack' ? 3 : 2 }} />
+            </Pressable>
+            <View style={{ padding: s.lg }}>
             <Row style={{ alignItems: 'flex-start' }}>
               <Pressable style={{ flex: 1 }} accessibilityRole="button" onPress={() => router.push({ pathname: '/meal/[id]', params: { id: m.id, servings: String(pm.servings) } })}>
                 <Eyebrow>{cap(pm.slot)} · {m.mins} min</Eyebrow>
@@ -167,6 +172,7 @@ function Plan() {
               <Button label={wasLogged ? 'Logged' : 'Log as eaten'} icon={wasLogged ? 'check' : 'plus'} small variant="ghost" onPress={() => log(pm, i)} disabled={wasLogged} />
               <Button label="Swap" icon="repeat" small variant="quiet" onPress={() => st0.swapPlanned(day, i)} />
             </Row>
+            </View>
           </Card>
         );
       })}
@@ -187,10 +193,10 @@ const st = StyleSheet.create({
   seg: { flex: 1, paddingVertical: 10, borderRadius: radius.pill, alignItems: 'center' },
   segOn: { backgroundColor: c.goldWash },
   segText: { color: c.muted, fontFamily: f.medium, fontSize: 12, letterSpacing: 1.4, textTransform: 'uppercase' },
-  ringValue: { color: c.cream, fontFamily: f.serif, fontSize: 30, lineHeight: 32, fontVariant: ['lining-nums', 'tabular-nums'] },
+  ringValue: { color: c.cream, fontFamily: f.serif, fontSize: 26, lineHeight: 30, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   entry: { paddingVertical: 10 },
   entryLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
   kcal: { color: c.cream, fontFamily: f.medium, fontSize: 15, marginLeft: s.md, fontVariant: ['tabular-nums'] },
-  planTitle: { color: c.cream, fontFamily: f.serif, fontSize: 28, lineHeight: 32, marginTop: s.sm, marginBottom: s.sm },
-  mealName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 22, lineHeight: 26, marginTop: 4, marginBottom: 2 },
+  planTitle: { color: c.cream, fontFamily: f.serif, fontSize: 24, lineHeight: 28, letterSpacing: -0.5, marginTop: s.sm, marginBottom: s.sm },
+  mealName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 19, lineHeight: 23, letterSpacing: -0.3, marginTop: 4, marginBottom: 2 },
 });

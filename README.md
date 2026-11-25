@@ -8,6 +8,8 @@ A personal trainer and nutrition coach in one app. Built with Expo (React Native
 - **Training plan** – a split (full body, upper/lower or push/pull/legs) built only from exercises your equipment allows. Swap any exercise for an alternative.
 - **Exercise demos** – every exercise has a looping start/end demonstration, muscles worked and step-by-step technique.
 - **Workout logging with automatic progression** – log sets, reps and weight with a rest timer. Next session's targets update themselves: hit the top of the rep range and the weight goes up; miss twice and it deloads.
+- **Coach** – during each exercise, a briefing explains today's target, what you did last time, why the weight or sets changed, and what the lift is for. It reacts after every set.
+- **Progress photos** – front, side and back at each check-in, shown side by side against your first set.
 - **Weigh-ins and weekly check-in** – a weekly review of weight trend, sessions and intake that retunes your calories.
 - **Meal planner** – a seven-day plan fitted to your calorie and protein targets. Exclude foods you don't like, heart favourites to have them repeat, swap meals, and get a shopping list.
 - **Food diary** – scan a barcode (Open Food Facts, good UK supermarket coverage including Aldi), search by name, or enter values manually.
@@ -47,6 +49,7 @@ npm run build:exercises -- path/to/exercises.json   # regenerate the exercise li
 
 - Exercises and demo images: [free-exercise-db](https://github.com/yuhonas/free-exercise-db), public domain (Unlicense).
 - Packaged food data: [Open Food Facts](https://openfoodfacts.org), Open Database Licence. Attribution is required in the shipped app.
+- Recipe photos: generated for this app and loaded from a remote URL (`src/data/mealImages.ts`). Bundle them into `assets/` before release.
 - Recipe macros and staple food values are estimates.
 
 ## Before App Store submission

@@ -218,7 +218,7 @@ export default function Onboarding() {
 const st = StyleSheet.create({
   progress: { height: 2, backgroundColor: c.line, marginBottom: s.xl, borderRadius: 1 },
   progressFill: { height: 2, backgroundColor: c.gold, borderRadius: 1 },
-  brand: { color: c.cream, fontFamily: f.serif, fontSize: 64, lineHeight: 70, letterSpacing: 1, marginTop: s.md },
+  brand: { color: c.cream, fontFamily: f.heavy, fontSize: 60, lineHeight: 64, letterSpacing: -2.5, marginTop: s.md },
   goldRule: { width: 48, height: 1, backgroundColor: c.gold, marginTop: s.lg },
-  planName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 24, marginTop: 6, marginBottom: 2 },
+  planName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 22, letterSpacing: -0.4, marginTop: 6, marginBottom: 2 },
 });

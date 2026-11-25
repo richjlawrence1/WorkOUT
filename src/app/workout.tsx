@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ExerciseDemo } from '../components/ExerciseDemo';
 import { EX } from '../lib/plan';
-import { sessionPRs, sessionVolume } from '../lib/progression';
+import { sessionPRs, sessionVolume, setFeedback } from '../lib/progression';
 import { useStore } from '../store';
 import { c, f, radius, s } from '../theme';
 import type { Session, SessionEntry, SetLog } from '../types';
@@ -21,11 +21,15 @@ const useNow = () => {
   return now;
 };
 
+// Screens here are always pushed over the tabs, so going back returns to them.
+const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
 export default function Workout() {
   const { active, sessions, updateActive, finishWorkout, discardWorkout } = useStore();
   const now = useNow();
   const [restEnd, setRestEnd] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<'discard' | 'finish' | null>(null);
+  const [cue, setCue] = useState<string | null>(null);
   const [summary, setSummary] = useState<{ sn: Session; prs: { exId: string; e1rm: number }[] } | null>(null);
 
   if (summary) return <Summary {...summary} />;
@@ -33,7 +37,7 @@ export default function Workout() {
     return (
       <Screen>
         <Title>No session in progress</Title>
-        <Button label="Back to today" style={{ marginTop: s.xl }} onPress={() => router.dismissTo('/')} />
+        <Button label="Back to today" style={{ marginTop: s.xl }} onPress={() => leave()} />
       </Screen>
     );
   }
@@ -54,6 +58,8 @@ export default function Workout() {
     if (!set.done) {
       if (set.reps == null) return;
       thud();
+      const after = { ...entries[ei], sets: entries[ei].sets.map((x, i) => (i === si ? { ...x, done: true } : x)) };
+      setCue(`${ex?.name}: ${setFeedback(after, si)}`);
       // Carry the logged weight forward to the remaining sets of this exercise.
       patch(ei, (e) => ({
         ...e,
@@ -68,7 +74,7 @@ export default function Workout() {
   const finish = () => {
     const before = sessions;
     const sn = finishWorkout();
-    if (!sn) return router.dismissTo('/');
+    if (!sn) return leave();
     setSummary({ sn, prs: sessionPRs(before, sn) });
   };
 
@@ -88,12 +94,19 @@ export default function Workout() {
                 onPress={() => {
                   if (confirm === 'finish') return finish();
                   discardWorkout();
-                  router.dismissTo('/');
+                  leave();
                 }}
               />
             </Row>
           </View>
         ) : (
+          <View>
+          {cue ? (
+            <Row style={{ alignItems: 'flex-start', gap: s.sm, marginBottom: s.md }}>
+              <CoachMark />
+              <Small style={{ flex: 1, color: c.text }}>{cue}</Small>
+            </Row>
+          ) : null}
           <Row style={{ gap: s.md }}>
             {rest > 0 ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Skip rest" style={st.rest} onPress={() => setRestEnd(null)}>
@@ -109,6 +122,7 @@ export default function Workout() {
               onPress={() => (doneCount === total ? finish() : setConfirm('finish'))}
             />
           </Row>
+          </View>
         )
       }
     >
@@ -138,7 +152,7 @@ export default function Workout() {
                 <Feather name="info" size={16} color={c.faint} />
               </Row>
             </Pressable>
-            {isCurrent && e.note ? <Text style={st.note}>{e.note}</Text> : null}
+            {isCurrent && e.note ? <CoachCard entry={e} /> : null}
 
             {(isCurrent || allDone || e.sets.some((x) => x.done)) && (
               <View style={{ marginTop: s.md }}>
@@ -183,6 +197,36 @@ export default function Workout() {
   );
 }
 
+function CoachMark() {
+  return (
+    <View style={st.coachMark} accessibilityLabel="Coach">
+      <Feather name="zap" size={11} color="#17130A" />
+    </View>
+  );
+}
+
+/** The coach's briefing for the current exercise: the call, the reason, last time, and the goal. */
+function CoachCard({ entry }: { entry: SessionEntry }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={st.coach}>
+      <Row style={{ gap: s.sm }}>
+        <CoachMark />
+        <Eyebrow>Coach</Eyebrow>
+      </Row>
+      <Text style={st.note}>{entry.note}</Text>
+      {entry.last ? <Small style={{ marginTop: 4 }}>{entry.last}</Small> : null}
+      {entry.why ? <Body style={{ marginTop: s.sm, fontSize: 14, lineHeight: 20 }}>{entry.why}</Body> : null}
+      {entry.goal ? (
+        <Pressable accessibilityRole="button" onPress={() => { tap(); setOpen(!open); }} style={{ marginTop: s.sm }}>
+          <Small style={{ color: c.gold }}>{open ? 'Hide the goal' : "What's the goal?"}</Small>
+          {open ? <Small style={{ marginTop: 4, color: c.text }}>{entry.goal}</Small> : null}
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 function NumInput({ value, onChange, done, integer, label, placeholder }: { value: number | null; onChange: (v: number | null) => void; done: boolean; integer?: boolean; label: string; placeholder?: string }) {
   const [text, setText] = useState(value == null ? '' : String(value));
   useEffect(() => {
@@ -215,7 +259,7 @@ function NumInput({ value, onChange, done, integer, label, placeholder }: { valu
 function Summary({ sn, prs }: { sn: Session; prs: { exId: string; e1rm: number }[] }) {
   const sets = sn.entries.reduce((n, e) => n + e.sets.length, 0);
   return (
-    <Screen footer={<Button label="Done" onPress={() => router.dismissTo('/')} />}>
+    <Screen footer={<Button label="Done" onPress={() => leave()} />}>
       <View style={{ paddingTop: s.xxl }}>
         <Eyebrow>Session complete</Eyebrow>
         <Title style={{ marginTop: s.sm }}>{sn.dayName},{'\n'}done.</Title>
@@ -258,7 +302,9 @@ const st = StyleSheet.create({
   track: { height: 2, borderRadius: 1, backgroundColor: c.line, marginTop: s.lg, overflow: 'hidden' },
   fill: { height: 2, backgroundColor: c.gold },
   thumb: { width: 48, aspectRatio: 1, borderRadius: radius.sm, marginRight: s.md },
-  note: { color: c.goldBright, fontFamily: f.serifItalic, fontSize: 17, lineHeight: 22, marginTop: s.md },
+  note: { color: c.cream, fontFamily: f.serif, fontSize: 18, lineHeight: 23, letterSpacing: -0.3, marginTop: s.sm },
+  coach: { marginTop: s.md, padding: s.md, borderRadius: radius.sm, backgroundColor: c.goldWash, borderWidth: StyleSheet.hairlineWidth, borderColor: c.goldDim },
+  coachMark: { width: 20, height: 20, borderRadius: 10, backgroundColor: c.gold, alignItems: 'center', justifyContent: 'center' },
   colNum: { width: 36 },
   colIn: { flex: 1, marginRight: s.sm },
   setNum: { color: c.muted, fontFamily: f.medium, fontSize: 15 },
@@ -266,5 +312,5 @@ const st = StyleSheet.create({
   check: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: c.gold, borderColor: c.gold },
   rest: { alignItems: 'center', paddingHorizontal: s.md },
-  restTime: { color: c.gold, fontFamily: f.serif, fontSize: 24, lineHeight: 26, fontVariant: ['lining-nums', 'tabular-nums'] },
+  restTime: { color: c.gold, fontFamily: f.serif, fontSize: 20, lineHeight: 24, fontVariant: ['tabular-nums'] },
 });

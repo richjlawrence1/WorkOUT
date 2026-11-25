@@ -88,5 +88,5 @@ function Spark({ values }: { values: number[] }) {
 }
 
 const st = StyleSheet.create({
-  num: { width: 30, color: c.gold, fontFamily: f.serif, fontSize: 22, lineHeight: 24, fontVariant: ['lining-nums'] },
+  num: { width: 30, color: c.gold, fontFamily: f.serif, fontSize: 18, lineHeight: 22 },
 });

@@ -43,7 +43,7 @@ export default function Train() {
 
       {day.exercises.map((pe, i) => {
         const ex = EX[pe.exId];
-        const t = nextTarget(sessions, pe.exId, pe.repMin, pe.repMax);
+        const t = nextTarget(sessions, pe, profile.goal);
         const alts = swapping === i ? alternatives(profile, pe.exId, inPlan).slice(0, 6) : [];
         return (
           <Card key={pe.exId + i} style={{ marginBottom: s.md, padding: s.md }}>
@@ -54,14 +54,14 @@ export default function Train() {
               <Pressable style={{ flex: 1, marginLeft: s.md }} onPress={() => router.push(`/exercise/${ex.id}`)}>
                 <Body style={{ fontFamily: f.medium }} numberOfLines={1}>{ex.name}</Body>
                 <Small>
-                  {pe.sets} sets × {pe.repMin}-{pe.repMax} {ex.timed ? 'sec' : 'reps'}
+                  {t.sets} sets × {pe.repMin}-{pe.repMax} {ex.timed ? 'sec' : 'reps'}
                   {t.kg ? ` · ${t.kg} kg` : ''}
                 </Small>
                 {t.trend !== 'new' ? (
                   <Row style={{ gap: 4, marginTop: 2 }}>
-                    <Feather name={t.trend === 'up' ? 'arrow-up-right' : t.trend === 'down' ? 'arrow-down-right' : 'minus'} size={12} color={t.trend === 'down' ? c.bad : c.gold} />
+                    <Feather name={t.trend === 'up' ? 'arrow-up-right' : t.trend === 'down' ? 'arrow-down-right' : t.trend === 'volume' ? 'plus' : 'minus'} size={12} color={t.trend === 'down' ? c.bad : c.gold} />
                     <Small style={{ color: t.trend === 'down' ? c.bad : c.gold }}>
-                      {t.trend === 'up' ? 'Progressing' : t.trend === 'down' ? 'Deload' : `Aim for ${t.reps}`}
+                      {t.trend === 'up' ? 'Weight goes up' : t.trend === 'down' ? 'Lighter on purpose' : t.trend === 'volume' ? 'Extra set' : `Aim for ${t.reps}`}
                     </Small>
                   </Row>
                 ) : null}
@@ -97,7 +97,7 @@ export default function Train() {
 }
 
 const st = StyleSheet.create({
-  dayName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 26 },
+  dayName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 22, letterSpacing: -0.4 },
   thumb: { width: 72, aspectRatio: 1, borderRadius: radius.sm },
   swapBox: { marginTop: s.md, paddingTop: s.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
   alt: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },

@@ -1,6 +1,4 @@
-import {
-  CormorantGaramond_500Medium, CormorantGaramond_500Medium_Italic, CormorantGaramond_600SemiBold,
-} from '@expo-google-fonts/cormorant-garamond';
+import { Outfit_500Medium, Outfit_700Bold, Outfit_800ExtraBold } from '@expo-google-fonts/outfit';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router/stack';
@@ -16,7 +14,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    CormorantGaramond_500Medium, CormorantGaramond_500Medium_Italic, CormorantGaramond_600SemiBold,
+    Outfit_500Medium, Outfit_700Bold, Outfit_800ExtraBold,
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold,
   });
   const hydrated = useStore((st) => st.hydrated);

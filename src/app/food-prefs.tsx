@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { MealImage } from '../components/MealImage';
 import { FOOD_TAGS } from '../data/meals';
 import { allowedMeals } from '../lib/mealplan';
 import { useStore } from '../store';
@@ -76,6 +77,7 @@ export default function FoodPrefsScreen() {
                   onPress={() => { tap(); toggleFav(m.id); }}
                   style={[st.row, i > 0 && st.line]}
                 >
+                  <MealImage id={m.id} style={{ width: 48, height: 48, borderRadius: 10, marginRight: s.md }} />
                   <View style={{ flex: 1 }}>
                     <Body numberOfLines={1}>{m.name}</Body>
                     <Small>{m.kcal} kcal · {m.protein} g protein</Small>

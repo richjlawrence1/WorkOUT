@@ -4,12 +4,14 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ExerciseDemo } from '../../components/ExerciseDemo';
 import { WeighInCard } from '../../components/WeighInCard';
+import { MealImage } from '../../components/MealImage';
 import { MEAL } from '../../data/meals';
 import { checkInDue, weighInDue } from '../../lib/checkin';
 import { dayKey, greeting, longDate } from '../../lib/dates';
 import { plannedMacros, todayIndex } from '../../lib/mealplan';
 import { sumMacros } from '../../lib/nutrition';
 import { EX, estMinutes } from '../../lib/plan';
+import { sessionBrief } from '../../lib/progression';
 import { selectTargets, sessionsThisWeek, useStore } from '../../store';
 import { c, f, s } from '../../theme';
 import { Bar, Body, Button, Card, Eyebrow, Ring, Row, Screen, Small, Title } from '../../ui';
@@ -59,6 +61,15 @@ export default function Today() {
           <View style={st.dots}>
             {Array.from({ length: profile.daysPerWeek }, (_, i) => <View key={i} style={[st.dot, i < done && st.dotOn]} />)}
           </View>
+          {!trainedToday || active ? (
+            <View style={st.coach}>
+              <Row style={{ gap: s.sm, marginBottom: 6 }}>
+                <View style={st.coachMark}><Feather name="zap" size={11} color="#17130A" /></View>
+                <Eyebrow>Coach</Eyebrow>
+              </Row>
+              <Small style={{ color: c.text }}>{sessionBrief(day, sessions, profile.goal)}</Small>
+            </View>
+          ) : null}
           {trainedToday && !active ? (
             <Body muted style={{ marginBottom: s.md }}>Session logged today. Rest, eat well, and come back stronger.</Body>
           ) : null}
@@ -104,6 +115,7 @@ export default function Today() {
         {meals.length ? (
           meals.map((pm, i) => (
             <Row key={i} style={{ justifyContent: 'space-between', paddingTop: s.md }}>
+              <MealImage id={pm.mealId} style={{ width: 52, height: 52, borderRadius: 10, marginRight: s.md }} />
               <View style={{ flex: 1, paddingRight: s.md }}>
                 <Small style={{ textTransform: 'capitalize' }}>{pm.slot}</Small>
                 <Body numberOfLines={1}>{MEAL[pm.mealId].name}</Body>
@@ -120,9 +132,11 @@ export default function Today() {
 }
 
 const st = StyleSheet.create({
-  sessionName: { color: c.cream, fontFamily: f.serif, fontSize: 32, lineHeight: 36, fontVariant: ['lining-nums'], marginTop: 6, marginBottom: 2 },
+  sessionName: { color: c.cream, fontFamily: f.serif, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, marginTop: 6, marginBottom: 2 },
+  coach: { padding: s.md, borderRadius: 10, backgroundColor: c.goldWash, borderWidth: StyleSheet.hairlineWidth, borderColor: c.goldDim, marginBottom: s.lg },
+  coachMark: { width: 20, height: 20, borderRadius: 10, backgroundColor: c.gold, alignItems: 'center', justifyContent: 'center' },
   dots: { flexDirection: 'row', gap: 6, marginVertical: s.lg },
   dot: { flex: 1, height: 3, borderRadius: 2, backgroundColor: c.line },
   dotOn: { backgroundColor: c.gold },
-  ringValue: { color: c.cream, fontFamily: f.serif, fontSize: 28, lineHeight: 30, fontVariant: ['lining-nums', 'tabular-nums'] },
+  ringValue: { color: c.cream, fontFamily: f.serif, fontSize: 24, lineHeight: 28, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
 });

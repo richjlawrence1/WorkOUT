@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PhotoCapture, PhotoCompare } from '../components/ProgressPhotos';
 import { WeighInCard } from '../components/WeighInCard';
 import { buildCheckIn } from '../lib/checkin';
 import { dayKey } from '../lib/dates';
@@ -24,6 +25,7 @@ export default function CheckInScreen() {
   const [result, setResult] = useState<CheckIn | null>(null);
   if (!profile) return null;
   const weighedToday = weights.some((w) => w.date === dayKey());
+  const hasPhotos = st0.photos.length > 0;
 
   if (result) {
     const t = selectTargets(st0)!;
@@ -53,6 +55,12 @@ export default function CheckInScreen() {
             </View>
           ))}
         </Card>
+        {hasPhotos ? (
+          <Card style={{ marginTop: s.md }}>
+            <Eyebrow style={{ marginBottom: s.md }}>Start vs now</Eyebrow>
+            <PhotoCompare />
+          </Card>
+        ) : null}
         <Card style={{ marginTop: s.md }}>
           <Eyebrow>Daily targets{result.kcalDelta ? ' · updated' : ''}</Eyebrow>
           <Row style={{ marginTop: s.md }}>
@@ -113,6 +121,20 @@ export default function CheckInScreen() {
         </View>
       ))}
 
+      <Card style={{ marginTop: s.xl }}>
+        <Eyebrow>Progress photos</Eyebrow>
+        <Body muted style={{ marginTop: 4, marginBottom: s.md }}>
+          Front, side and back. Same spot, same light and same time of day each week makes the comparison honest.
+        </Body>
+        <PhotoCapture />
+      </Card>
+      {hasPhotos ? (
+        <Card style={{ marginTop: s.md }}>
+          <Eyebrow style={{ marginBottom: s.md }}>Start vs now</Eyebrow>
+          <PhotoCompare />
+        </Card>
+      ) : null}
+
       <Field label="Anything else? (optional)" value={notes} onChangeText={setNotes} placeholder="Niggles, wins, a busy week ahead" style={{ marginTop: s.xl }} />
     </Screen>
   );
@@ -121,5 +143,5 @@ export default function CheckInScreen() {
 const st = StyleSheet.create({
   scale: { flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
   scaleOn: { borderColor: c.gold, backgroundColor: c.goldWash },
-  scaleText: { color: c.muted, fontFamily: f.serif, fontSize: 22, fontVariant: ['lining-nums'] },
+  scaleText: { color: c.muted, fontFamily: f.serif, fontSize: 18 },
 });

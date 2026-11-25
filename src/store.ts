@@ -5,10 +5,11 @@ import { latestWeight } from './lib/checkin';
 import { dayKey, uid, weekStart } from './lib/dates';
 import { generateMealPlan, swapMeal } from './lib/mealplan';
 import { targets } from './lib/nutrition';
+import { deletePhoto } from './lib/photos';
 import { EX, generatePlan, prescription } from './lib/plan';
 import { buildEntries } from './lib/progression';
 import type {
-  CheckIn, DiaryEntry, Food, FoodPrefs, Macros, MealPlan, Plan, Profile, Session, SessionEntry, Slot, WeightEntry,
+  CheckIn, DiaryEntry, Food, FoodPrefs, Macros, MealPlan, PhotoSet, Plan, Profile, Session, SessionEntry, Slot, WeightEntry,
 } from './types';
 
 interface Active {
@@ -35,6 +36,7 @@ interface State {
   mealPlan: MealPlan | null;
   diary: Record<string, DiaryEntry[]>;
   recentFoods: Food[];
+  photos: PhotoSet[];
 
   completeOnboarding: (p: Profile) => void;
   updateProfile: (patch: Partial<Profile>, regenerate?: boolean) => void;
@@ -46,6 +48,7 @@ interface State {
   discardWorkout: () => void;
   logWeight: (kg: number, date?: string) => void;
   addCheckIn: (ci: CheckIn) => void;
+  setPhoto: (date: string, angle: 'front' | 'side' | 'back', ref: string) => void;
   setFoodPrefs: (p: FoodPrefs) => void;
   toggleFav: (mealId: string) => void;
   buildMealPlan: () => void;
@@ -71,6 +74,7 @@ const initial = {
   mealPlan: null,
   diary: {},
   recentFoods: [],
+  photos: [] as PhotoSet[],
 };
 
 export const useStore = create<State>()(
@@ -116,10 +120,10 @@ export const useStore = create<State>()(
       },
 
       startWorkout: (dayIndex) => {
-        const { plan, sessions } = get();
+        const { plan, sessions, profile } = get();
         const day = plan?.days[dayIndex];
         if (!day) return;
-        set({ active: { startedAt: new Date().toISOString(), dayId: day.id, dayName: day.name, entries: buildEntries(day, sessions) } });
+        set({ active: { startedAt: new Date().toISOString(), dayId: day.id, dayName: day.name, entries: buildEntries(day, sessions, profile?.goal) } });
       },
 
       updateActive: (entries) => {
@@ -161,6 +165,14 @@ export const useStore = create<State>()(
 
       addCheckIn: (ci) => set({ checkins: [...get().checkins, ci], kcalAdjust: get().kcalAdjust + ci.kcalDelta }),
 
+      setPhoto: (date, angle, ref) => {
+        const photos = get().photos;
+        const cur = photos.find((p) => p.date === date);
+        if (cur?.[angle]) deletePhoto(cur[angle] as string);
+        const next = { ...(cur ?? { date }), [angle]: ref };
+        set({ photos: [...photos.filter((p) => p.date !== date), next].sort((a, b) => a.date.localeCompare(b.date)) });
+      },
+
       setFoodPrefs: (p) => set({ foodPrefs: { ...p, set: true } }),
 
       toggleFav: (mealId) => {
@@ -190,7 +202,10 @@ export const useStore = create<State>()(
         set({ diary: { ...diary, [date]: (diary[date] ?? []).filter((x) => x.id !== id) } });
       },
 
-      reset: () => set({ ...initial }),
+      reset: () => {
+        get().photos.forEach((p) => [p.front, p.side, p.back].forEach((r) => r && deletePhoto(r)));
+        set({ ...initial });
+      },
     }),
     {
       name: 'workout-v1',

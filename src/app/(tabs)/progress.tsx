@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
+import { PhotoCapture, PhotoCompare } from '../../components/ProgressPhotos';
 import { WeighInCard } from '../../components/WeighInCard';
 import { checkInDue, windowAvg } from '../../lib/checkin';
 import { fromKey, shortDate } from '../../lib/dates';
@@ -67,6 +68,17 @@ export default function Progress() {
           <Body muted style={{ marginTop: s.sm }}>Each week I review your weigh-ins, training and food, then adjust your calories.</Body>
         )}
         <Button label={checkInDue(checkins, onboardedAt) ? 'Check in now' : 'Check in early'} variant={checkInDue(checkins, onboardedAt) ? 'gold' : 'ghost'} small style={{ marginTop: s.md, alignSelf: 'flex-start' }} onPress={() => router.push('/checkin')} />
+      </Card>
+
+      <Card style={{ marginTop: s.md }}>
+        <Eyebrow>Progress photos</Eyebrow>
+        {st0.photos.length ? (
+          <View style={{ marginTop: s.md }}><PhotoCompare /></View>
+        ) : (
+          <Body muted style={{ marginTop: s.sm }}>Take front, side and back photos today. Every check-in shows them next to your latest.</Body>
+        )}
+        <Small style={{ marginTop: s.lg, marginBottom: s.sm }}>Today's photos</Small>
+        <PhotoCapture />
       </Card>
 
       <Card style={{ marginTop: s.md }}>

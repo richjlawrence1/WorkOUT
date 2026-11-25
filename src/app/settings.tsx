@@ -9,6 +9,9 @@ import { Body, Button, Card, Chip, ChipRow, Eyebrow, Header, Row, Screen, Small,
 
 const GOALS: [Goal, string][] = [['lose', 'Lose fat'], ['build', 'Build muscle'], ['recomp', 'Tone & recomp'], ['strength', 'Get stronger']];
 
+// Screens here are always pushed over the tabs, so going back returns to them.
+const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
 export default function Settings() {
   const st0 = useStore();
   const { profile, updateProfile, reset } = st0;
@@ -71,7 +74,7 @@ export default function Settings() {
         {confirmReset ? (
           <Row style={{ gap: s.md }}>
             <Button label="Cancel" small variant="ghost" onPress={() => setConfirmReset(false)} />
-            <Button label="Erase everything" small variant="quiet" onPress={() => { reset(); router.dismissTo('/'); }} />
+            <Button label="Erase everything" small variant="quiet" onPress={() => { reset(); leave(); }} />
           </Row>
         ) : (
           <Button label="Erase all data" small variant="quiet" style={{ alignSelf: 'flex-start' }} onPress={() => setConfirmReset(true)} />
