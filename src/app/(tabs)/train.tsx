@@ -91,6 +91,7 @@ export default function Train() {
           router.push('/workout');
         }}
       />
+      {!active ? <Button label="Sore, tired or short on time?" variant="quiet" icon="sliders" onPress={() => router.push({ pathname: '/adjust', params: { day: String(sel) } })} style={{ marginTop: s.sm }} /> : null}
       <Button label="Refresh exercise selection" variant="quiet" icon="refresh-cw" onPress={regeneratePlan} style={{ marginTop: s.sm }} />
     </Screen>
   );

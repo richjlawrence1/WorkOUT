@@ -52,7 +52,10 @@
           "cameraPermission": "WorkOUT uses the camera to take your progress photos.",
           "photosPermission": "WorkOUT lets you choose progress photos from your library."
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-sharing",
+      "expo-notifications"
     ],
     "scheme": "workout",
     "backgroundColor": "#0A0A0B"

@@ -1,6 +1,7 @@
 import type { CheckIn, DiaryEntry, Profile, Session, WeightEntry } from '../types';
 import { addDays, dayKey, fromKey } from './dates';
 import { targetRate } from './nutrition';
+import { fmtAmount } from './units';
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
@@ -29,6 +30,7 @@ export function buildCheckIn(
   diary: Record<string, DiaryEntry[]>,
   a: CheckInAnswers
 ): CheckIn {
+  const amt = (kg: number) => fmtAmount(kg, profile.units);
   const since = addDays(new Date(), -7);
   const workoutsDone = sessions.filter((sn) => new Date(sn.date) > since).length;
   const loggedDays = Array.from({ length: 7 }, (_, i) => diary[dayKey(addDays(new Date(), -i))] ?? []).filter((d) => d.length);
@@ -50,15 +52,15 @@ export function buildCheckIn(
       // Dropping faster (or gaining slower) than the healthy band.
       kcalDelta = 150;
       verdict = profile.goal === 'lose'
-        ? `Weight is ${dir} ${Math.abs(weightChange)} kg, faster than planned. Adding food to protect muscle and energy.`
-        : `Weight is ${dir} ${Math.abs(weightChange)} kg. You need more fuel to grow.`;
+        ? `Weight is ${dir} ${amt(weightChange)}, faster than planned. Adding food to protect muscle and energy.`
+        : `Weight is ${dir} ${amt(weightChange)}. You need more fuel to grow.`;
     } else if (rate > hi) {
       kcalDelta = -150;
       verdict = profile.goal === 'lose'
-        ? `Weight is ${weightChange === 0 ? 'flat' : `${dir} ${Math.abs(weightChange)} kg`}. Trimming calories slightly to get things moving.`
-        : `Weight is ${dir} ${Math.abs(weightChange)} kg, quicker than ideal. Easing calories back to keep gains lean.`;
+        ? `Weight is ${weightChange === 0 ? 'flat' : `${dir} ${amt(weightChange)}`}. Trimming calories slightly to get things moving.`
+        : `Weight is ${dir} ${amt(weightChange)}, quicker than ideal. Easing calories back to keep gains lean.`;
     } else {
-      verdict = `Weight is ${weightChange === 0 ? 'holding' : `${dir} ${Math.abs(weightChange)} kg`}. Right on pace.`;
+      verdict = `Weight is ${weightChange === 0 ? 'holding' : `${dir} ${amt(weightChange)}`}. Right on pace.`;
     }
     // Poor adherence means the numbers aren't telling us about the targets.
     if (a.adherence <= 2 && kcalDelta < 0) {

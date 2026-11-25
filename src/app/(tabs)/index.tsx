@@ -12,6 +12,8 @@ import { plannedMacros, todayIndex } from '../../lib/mealplan';
 import { sumMacros } from '../../lib/nutrition';
 import { EX, estMinutes } from '../../lib/plan';
 import { sessionBrief } from '../../lib/progression';
+import { todayInsights, weeklyInsights } from '../../lib/insights';
+import { InsightCard } from '../../components/InsightCard';
 import { selectTargets, sessionsThisWeek, useStore } from '../../store';
 import { c, f, s } from '../../theme';
 import { Bar, Body, Button, Card, Eyebrow, Ring, Row, Screen, Small, Title } from '../../ui';
@@ -28,6 +30,7 @@ export default function Today() {
   const trainedToday = sessions.some((sn) => dayKey(new Date(sn.date)) === dayKey());
   const meals = mealPlan?.days[todayIndex()] ?? [];
   const left = Math.max(0, t.kcal - eaten.kcal);
+  const insightInput = { profile, targets: t, sessions, diary, weights, todayMeals: meals, nextSessionName: day.name };
 
   return (
     <Screen>
@@ -47,6 +50,18 @@ export default function Today() {
       )}
 
       {weighInDue(weights, profile.weighInDay) && <WeighInCard style={{ marginTop: s.md }} />}
+
+      {[...todayInsights(insightInput), ...weeklyInsights(insightInput)].slice(0, 2).map((i) => (
+        <InsightCard key={i.id} insight={i} style={{ marginTop: s.md }} />
+      ))}
+
+      <Card style={{ marginTop: s.md }} onPress={() => router.push('/coach')}>
+        <Row style={{ gap: s.md }}>
+          <View style={st.coachMark}><Feather name="zap" size={11} color="#17130A" /></View>
+          <Body style={{ flex: 1 }}>Ask your coach anything</Body>
+          <Feather name="message-circle" size={18} color={c.gold} />
+        </Row>
+      </Card>
 
       {/* Training */}
       <Card style={{ marginTop: s.xl, padding: 0, overflow: 'hidden' }}>
@@ -81,6 +96,9 @@ export default function Today() {
               router.push('/workout');
             }}
           />
+          {!active ? (
+            <Button label="Sore, tired or short on time?" variant="quiet" icon="sliders" small onPress={() => router.push({ pathname: '/adjust', params: { day: String(plan.days.indexOf(day)) } })} style={{ marginTop: s.xs }} />
+          ) : null}
           <View style={{ marginTop: s.md }}>
             {day.exercises.slice(0, 3).map((pe) => (
               <Row key={pe.exId} style={{ justifyContent: 'space-between', paddingVertical: 5 }}>

@@ -52,9 +52,17 @@ export async function lookupBarcode(code: string): Promise<Food | null> {
   return json?.status === 1 ? toFood(json.product) : null;
 }
 
-export async function searchProducts(query: string): Promise<Food[]> {
+const search = async (query: string, store?: string): Promise<Food[]> => {
+  const filter = store ? `&tagtype_0=stores&tag_contains_0=contains&tag_0=${encodeURIComponent(store)}` : '';
   const json = await getJson(
-    `${BASE}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=25&fields=${FIELDS}`
+    `${BASE}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=25&fields=${FIELDS}${filter}`
   );
   return ((json?.products ?? []) as any[]).map(toFood).filter((x): x is Food => !!x);
+};
+
+/** With a preferred store, its products come first and everything else follows. */
+export async function searchProducts(query: string, store?: string): Promise<Food[]> {
+  if (!store) return search(query);
+  const [mine, all] = await Promise.all([search(query, store).catch(() => [] as Food[]), search(query)]);
+  return [...mine, ...all.filter((x) => !mine.some((m) => m.id === x.id))];
 }

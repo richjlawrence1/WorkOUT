@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ExerciseDemo } from '../components/ExerciseDemo';
+import { plateLine, usesBarbell, warmupSets } from '../lib/barbell';
+import { cancelRestAlert, scheduleRestAlert } from '../lib/notify';
 import { EX } from '../lib/plan';
 import { sessionPRs, sessionVolume, setFeedback } from '../lib/progression';
 import { useStore } from '../store';
@@ -30,6 +32,7 @@ export default function Workout() {
   const [restEnd, setRestEnd] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<'discard' | 'finish' | null>(null);
   const [cue, setCue] = useState<string | null>(null);
+  const restAlerts = useStore((x) => x.reminders.rest);
   const [summary, setSummary] = useState<{ sn: Session; prs: { exId: string; e1rm: number }[] } | null>(null);
 
   if (summary) return <Summary {...summary} />;
@@ -65,13 +68,17 @@ export default function Workout() {
         ...e,
         sets: e.sets.map((x, i) => (i === si ? { ...x, done: true } : i > si && !x.done ? { ...x, kg: set.kg } : x)),
       }));
-      setRestEnd(Date.now() + (ex?.compound ? 120 : 75) * 1000);
+      const secs = ex?.compound ? 120 : 75;
+      setRestEnd(Date.now() + secs * 1000);
+      const upNext = after.sets.some((x) => !x.done) ? ex?.name : EX[entries[ei + 1]?.exId]?.name;
+      if (restAlerts && upNext) scheduleRestAlert(secs, upNext);
     } else {
       patchSet(ei, si, { done: false });
     }
   };
 
   const finish = () => {
+    cancelRestAlert();
     const before = sessions;
     const sn = finishWorkout();
     if (!sn) return leave();
@@ -93,6 +100,7 @@ export default function Workout() {
                 style={{ flex: 1 }}
                 onPress={() => {
                   if (confirm === 'finish') return finish();
+                  cancelRestAlert();
                   discardWorkout();
                   leave();
                 }}
@@ -109,7 +117,7 @@ export default function Workout() {
           ) : null}
           <Row style={{ gap: s.md }}>
             {rest > 0 ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Skip rest" style={st.rest} onPress={() => setRestEnd(null)}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Skip rest" style={st.rest} onPress={() => { setRestEnd(null); cancelRestAlert(); }}>
                 <Small>Rest</Small>
                 <Text style={st.restTime}>{clock(rest)}</Text>
               </Pressable>
@@ -129,7 +137,10 @@ export default function Workout() {
       <Row style={{ justifyContent: 'space-between', marginLeft: -8 }}>
         <IconButton icon="chevron-down" label="Minimise session" onPress={() => router.back()} />
         <Text style={st.timer}>{clock((now - new Date(active.startedAt).getTime()) / 1000)}</Text>
-        <IconButton icon="x" label="Discard session" color={c.muted} onPress={() => setConfirm('discard')} />
+        <Row>
+          <IconButton icon="message-circle" label="Ask your coach" color={c.gold} onPress={() => router.push('/coach')} />
+          <IconButton icon="x" label="Discard session" color={c.muted} onPress={() => setConfirm('discard')} />
+        </Row>
       </Row>
       <Eyebrow style={{ marginTop: s.md }}>In session</Eyebrow>
       <Title>{active.dayName}</Title>
@@ -208,6 +219,9 @@ function CoachMark() {
 /** The coach's briefing for the current exercise: the call, the reason, last time, and the goal. */
 function CoachCard({ entry }: { entry: SessionEntry }) {
   const [open, setOpen] = useState(false);
+  const kg = entry.sets.find((x) => !x.done)?.kg ?? null;
+  const plates = kg && usesBarbell(entry.exId) ? plateLine(kg) : null;
+  const warm = entry.sets.some((x) => x.done) ? [] : warmupSets(entry.exId, kg);
   return (
     <View style={st.coach}>
       <Row style={{ gap: s.sm }}>
@@ -217,6 +231,10 @@ function CoachCard({ entry }: { entry: SessionEntry }) {
       <Text style={st.note}>{entry.note}</Text>
       {entry.last ? <Small style={{ marginTop: 4 }}>{entry.last}</Small> : null}
       {entry.why ? <Body style={{ marginTop: s.sm, fontSize: 14, lineHeight: 20 }}>{entry.why}</Body> : null}
+      {plates ? <Small style={{ marginTop: s.sm, color: c.text }}>Load: {plates}.</Small> : null}
+      {warm.length ? (
+        <Small style={{ marginTop: 4, color: c.text }}>Warm up first: {warm.map((w) => `${w.kg} kg × ${w.reps}`).join(', ')}. These don't count as sets.</Small>
+      ) : null}
       {entry.goal ? (
         <Pressable accessibilityRole="button" onPress={() => { tap(); setOpen(!open); }} style={{ marginTop: s.sm }}>
           <Small style={{ color: c.gold }}>{open ? 'Hide the goal' : "What's the goal?"}</Small>

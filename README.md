@@ -10,6 +10,12 @@ A personal trainer and nutrition coach in one app. Built with Expo (React Native
 - **Workout logging with automatic progression** – log sets, reps and weight with a rest timer. Next session's targets update themselves: hit the top of the rep range and the weight goes up; miss twice and it deloads.
 - **Coach** – during each exercise, a briefing explains today's target, what you did last time, why the weight or sets changed, and what the lift is for. It reacts after every set.
 - **Progress photos** – front, side and back at each check-in, shown side by side against your first set.
+- **Training and nutrition linked** – insights that read lifts, food and weight together (for example low protein alongside stalled lifts).
+- **Coach chat** – ask questions answered from your own data. Uses Claude with your own Anthropic API key, entered in Settings and kept in the device keychain. Personal use only: a public release must move this behind a server.
+- **Adjust today** – rebuilds a session around a sore area, limited time or low energy.
+- **Reminders** – weigh-in, check-in, food log, training, and a rest-timer alert that reaches the lock screen and a paired watch.
+- **Weekly report** – a shareable summary card.
+- **Extras** – plate loading and warm-up sets for barbell lifts, stones/pounds for body weight, preferred supermarket in food search, estimated weekly shop cost.
 - **Weigh-ins and weekly check-in** – a weekly review of weight trend, sessions and intake that retunes your calories.
 - **Meal planner** – a seven-day plan fitted to your calorie and protein targets. Exclude foods you don't like, heart favourites to have them repeat, swap meals, and get a shopping list.
 - **Food diary** – scan a barcode (Open Food Facts, good UK supermarket coverage including Aldi), search by name, or enter values manually.
@@ -40,6 +46,10 @@ npm run build:exercises -- path/to/exercises.json   # regenerate the exercise li
 | `src/lib/nutrition.ts` | Calorie and macro targets |
 | `src/lib/mealplan.ts` | Meal plan generator, swaps, shopping list |
 | `src/lib/checkin.ts` | Weekly check-in analysis |
+| `src/lib/insights.ts` | Findings that link training, food and weight |
+| `src/lib/adjust.ts` | Session changes for soreness, time and energy |
+| `src/lib/coachChat.ts` | Coach chat: data snapshot and Claude API call |
+| `src/lib/notify.ts` | Local reminders and rest alerts |
 | `src/lib/off.ts` | Open Food Facts barcode and product search |
 | `src/data/` | Exercise library (generated), recipes, staple foods |
 | `src/store.ts` | App state, persisted on-device |
@@ -51,6 +61,11 @@ npm run build:exercises -- path/to/exercises.json   # regenerate the exercise li
 - Packaged food data: [Open Food Facts](https://openfoodfacts.org), Open Database Licence. Attribution is required in the shipped app.
 - Recipe photos: generated for this app and loaded from a remote URL (`src/data/mealImages.ts`). Bundle them into `assets/` before release.
 - Recipe macros and staple food values are estimates.
+
+## Not built yet (need an installed development build, not Expo Go)
+
+- Apple Health sync
+- Live Activity rest timer on the lock screen, and an Apple Watch app
 
 ## Before App Store submission
 

@@ -17,6 +17,7 @@ export default function AddFood() {
   const params = useLocalSearchParams<{ date?: string; slot?: MealSlot }>();
   const date = params.date ?? dayKey();
   const recent = useStore((st) => st.recentFoods);
+  const store = useStore((st) => st.supermarket);
   const [mode, setMode] = useState<Mode>('search');
   const [q, setQ] = useState('');
   const [online, setOnline] = useState<Food[]>([]);
@@ -40,12 +41,12 @@ export default function AddFood() {
     const id = ++reqId.current;
     setStatus('loading');
     const timer = setTimeout(() => {
-      searchProducts(term)
+      searchProducts(term, store || undefined)
         .then((r) => { if (id === reqId.current) { setOnline(r); setStatus('done'); } })
         .catch(() => { if (id === reqId.current) { setOnline([]); setStatus('error'); } });
     }, 450);
     return () => clearTimeout(timer);
-  }, [term]);
+  }, [term, store]);
 
   if (picked) {
     return (

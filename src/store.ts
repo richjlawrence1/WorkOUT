@@ -5,6 +5,7 @@ import { latestWeight } from './lib/checkin';
 import { dayKey, uid, weekStart } from './lib/dates';
 import { generateMealPlan, swapMeal } from './lib/mealplan';
 import { targets } from './lib/nutrition';
+import { DEFAULT_REMINDERS, type ReminderPrefs } from './lib/notify';
 import { deletePhoto } from './lib/photos';
 import { EX, generatePlan, prescription } from './lib/plan';
 import { buildEntries } from './lib/progression';
@@ -37,12 +38,16 @@ interface State {
   diary: Record<string, DiaryEntry[]>;
   recentFoods: Food[];
   photos: PhotoSet[];
+  reminders: ReminderPrefs;
+  supermarket: string;
 
   completeOnboarding: (p: Profile) => void;
   updateProfile: (patch: Partial<Profile>, regenerate?: boolean) => void;
   regeneratePlan: () => void;
   swapExercise: (dayId: string, index: number, exId: string) => void;
-  startWorkout: (dayIndex: number) => void;
+  startWorkout: (dayIndex: number, entries?: SessionEntry[]) => void;
+  setReminders: (r: ReminderPrefs) => void;
+  setSupermarket: (s: string) => void;
   updateActive: (entries: SessionEntry[]) => void;
   finishWorkout: () => Session | null;
   discardWorkout: () => void;
@@ -75,6 +80,8 @@ const initial = {
   diary: {},
   recentFoods: [],
   photos: [] as PhotoSet[],
+  reminders: DEFAULT_REMINDERS,
+  supermarket: '',
 };
 
 export const useStore = create<State>()(
@@ -119,11 +126,14 @@ export const useStore = create<State>()(
         });
       },
 
-      startWorkout: (dayIndex) => {
+      setReminders: (reminders) => set({ reminders }),
+      setSupermarket: (supermarket) => set({ supermarket }),
+
+      startWorkout: (dayIndex, entries) => {
         const { plan, sessions, profile } = get();
         const day = plan?.days[dayIndex];
         if (!day) return;
-        set({ active: { startedAt: new Date().toISOString(), dayId: day.id, dayName: day.name, entries: buildEntries(day, sessions, profile?.goal) } });
+        set({ active: { startedAt: new Date().toISOString(), dayId: day.id, dayName: day.name, entries: entries ?? buildEntries(day, sessions, profile?.goal) } });
       },
 
       updateActive: (entries) => {

@@ -6,6 +6,7 @@ import { PhotoCapture, PhotoCompare } from '../../components/ProgressPhotos';
 import { WeighInCard } from '../../components/WeighInCard';
 import { checkInDue, windowAvg } from '../../lib/checkin';
 import { fromKey, shortDate } from '../../lib/dates';
+import { bodyParts, deltaParts, fmtBody } from '../../lib/units';
 import { EX } from '../../lib/plan';
 import { bestE1rm, sessionVolume } from '../../lib/progression';
 import { selectWeight, sessionsThisWeek, useStore } from '../../store';
@@ -21,6 +22,8 @@ export default function Progress() {
   const change = current - profile.startWeightKg;
   const toGo = profile.targetWeightKg - current;
   const avg = windowAvg(weights, 0);
+  const u = profile.units ?? 'kg';
+  const cur = bodyParts(current, u), chg = deltaParts(change, u), go = deltaParts(Math.abs(toGo), u);
   const lifts = [...new Set(sessions.flatMap((sn) => sn.entries.map((e) => e.exId)))]
     .map((id) => ({ id, best: bestE1rm(sessions, id) }))
     .filter((x) => x.best > 0 && EX[x.id]?.compound)
@@ -39,20 +42,22 @@ export default function Progress() {
       <Card style={{ marginTop: s.xl }}>
         <Eyebrow>Body weight</Eyebrow>
         <Row style={{ marginTop: s.md }}>
-          <Stat value={current.toFixed(1)} unit="kg" label="Current" />
-          <Stat value={`${change > 0 ? '+' : ''}${change.toFixed(1)}`} unit="kg" label="Since start" />
+          <Stat value={cur.value} unit={cur.unit} label="Current" />
+          <Stat value={chg.value} unit={chg.unit} label="Since start" />
           {Math.abs(toGo) >= 0.1 && profile.targetWeightKg !== profile.startWeightKg ? (
-            <Stat value={Math.abs(toGo).toFixed(1)} unit="kg" label="To goal" />
+            <Stat value={go.value.replace('+', '')} unit={go.unit} label="To goal" />
           ) : (
-            <Stat value={avg ? avg.toFixed(1) : '–'} unit={avg ? 'kg' : undefined} label="7-day avg" />
+            <Stat value={avg ? bodyParts(avg, u).value : '–'} unit={avg ? bodyParts(avg, u).unit : undefined} label="7-day avg" />
           )}
         </Row>
-        {weights.length > 1 ? <WeightChart data={weights.slice(-30)} target={profile.targetWeightKg} /> : (
+        {weights.length > 1 ? <WeightChart data={weights.slice(-30)} target={profile.targetWeightKg} goalLabel={fmtBody(profile.targetWeightKg, u)} /> : (
           <Small style={{ marginTop: s.md }}>Your trend line appears after your second weigh-in.</Small>
         )}
       </Card>
 
       <WeighInCard style={{ marginTop: s.md }} title="Log weight" />
+
+      <Button label="This week's report" icon="share" variant="ghost" style={{ marginTop: s.md }} onPress={() => router.push('/report')} />
 
       <Card style={{ marginTop: s.md }} gold={checkInDue(checkins, onboardedAt)}>
         <Eyebrow>Weekly check-in</Eyebrow>
@@ -123,7 +128,7 @@ export default function Progress() {
   );
 }
 
-function WeightChart({ data, target }: { data: WeightEntry[]; target: number }) {
+function WeightChart({ data, target, goalLabel }: { data: WeightEntry[]; target: number; goalLabel: string }) {
   const w = 320, h = 140, padL = 34, padR = 8, padY = 14;
   const vals = data.map((d) => d.kg);
   const showTarget = Math.abs(target - vals[vals.length - 1]) < 15;
@@ -150,7 +155,7 @@ function WeightChart({ data, target }: { data: WeightEntry[]; target: number }) 
       </Svg>
       <Row style={{ justifyContent: 'space-between', paddingLeft: padL }}>
         <Small>{shortDate(fromKey(data[0].date))}</Small>
-        {showTarget ? <Small style={{ color: c.goldDim }}>- - goal {target} kg</Small> : null}
+        {showTarget ? <Small style={{ color: c.goldDim }}>- - goal {goalLabel}</Small> : null}
         <Small>{shortDate(fromKey(last.date))}</Small>
       </Row>
     </View>

@@ -5,6 +5,10 @@ import { PhotoCapture, PhotoCompare } from '../components/ProgressPhotos';
 import { WeighInCard } from '../components/WeighInCard';
 import { buildCheckIn } from '../lib/checkin';
 import { dayKey } from '../lib/dates';
+import { weeklyInsights } from '../lib/insights';
+import { todayIndex } from '../lib/mealplan';
+import { deltaParts } from '../lib/units';
+import { InsightCard } from '../components/InsightCard';
 import { selectTargets, useStore } from '../store';
 import { c, f, s } from '../theme';
 import type { CheckIn } from '../types';
@@ -39,13 +43,16 @@ export default function CheckInScreen() {
           <Row>
             <Stat value={`${result.workoutsDone}/${result.workoutsPlanned}`} label="Sessions" />
             <Stat
-              value={result.weightChange == null ? '–' : `${result.weightChange > 0 ? '+' : ''}${result.weightChange}`}
-              unit={result.weightChange == null ? undefined : 'kg'}
+              value={result.weightChange == null ? '–' : deltaParts(result.weightChange, profile.units).value}
+              unit={result.weightChange == null ? undefined : deltaParts(result.weightChange, profile.units).unit}
               label="Weight change"
             />
             <Stat value={result.avgKcal == null ? '–' : String(result.avgKcal)} label="Avg kcal" />
           </Row>
         </Card>
+        {weeklyInsights({ profile, targets: t, sessions, diary, weights: st0.weights, todayMeals: st0.mealPlan?.days[todayIndex()] ?? [] }).map((i) => (
+          <InsightCard key={i.id} insight={i} style={{ marginTop: s.md }} />
+        ))}
         <Card gold style={{ marginTop: s.md }}>
           <Eyebrow>Plan for the week ahead</Eyebrow>
           {result.actions.map((x, i) => (

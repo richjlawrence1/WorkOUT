@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { shoppingList } from '../lib/mealplan';
+import { SUPERMARKETS, ingredientCost } from '../lib/prices';
 import { useStore } from '../store';
 import { c, s } from '../theme';
 import { Body, Card, Header, Screen, Small, Title, tap } from '../ui';
@@ -10,6 +11,9 @@ export default function Shopping() {
   const mealPlan = useStore((st) => st.mealPlan);
   const list = useMemo(() => (mealPlan ? shoppingList(mealPlan) : []), [mealPlan]);
   const [got, setGot] = useState<string[]>([]);
+  const shop = useStore((st) => st.supermarket);
+  const cost = list.reduce((sum, row) => sum + ingredientCost(row.item) * row.uses, 0);
+  const shopName = SUPERMARKETS.find((x) => x[0] === shop)?.[1];
   return (
     <Screen>
       <Header title="Shopping" />
@@ -17,7 +21,13 @@ export default function Shopping() {
       <Small style={{ marginTop: 6 }}>
         {list.length} items across your plan. Quantities are per serving, multiplied by how often each appears.
       </Small>
-      <Card style={{ marginTop: s.xl, paddingVertical: 4 }}>
+      {list.length ? (
+        <Card gold style={{ marginTop: s.lg }}>
+          <Body>About £{Math.round(cost / 5) * 5} for the week</Body>
+          <Small style={{ marginTop: 4 }}>A rough estimate at budget-supermarket prices{shop && shopName ? ` such as ${shopName}` : ''}, not live shelf prices.</Small>
+        </Card>
+      ) : null}
+      <Card style={{ marginTop: s.md, paddingVertical: 4 }}>
         {list.map((row, i) => {
           const on = got.includes(row.item);
           return (

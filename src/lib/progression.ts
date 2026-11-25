@@ -15,7 +15,7 @@ const roundTo = (kg: number, step: number) => Math.max(step, Math.round(kg / ste
 export const lastEntries = (sessions: Session[], exId: string, n = 2): SessionEntry[] => {
   const out: SessionEntry[] = [];
   for (let i = sessions.length - 1; i >= 0 && out.length < n; i--) {
-    const e = sessions[i].entries.find((x) => x.exId === exId && x.sets.some((st) => st.done));
+    const e = sessions[i].entries.find((x) => x.exId === exId && !x.easy && x.sets.some((st) => st.done));
     if (e) out.push(e);
   }
   return out;

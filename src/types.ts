@@ -37,6 +37,7 @@ export interface Profile {
   activity: Activity;
   equipment: string[];
   weighInDay: number; // 0 = Sunday
+  units?: 'kg' | 'lb' | 'st'; // body-weight display; lifts are always kg
 }
 
 export interface PlanExercise {
@@ -72,6 +73,7 @@ export interface SessionEntry {
   last?: string | null; // what happened last time
   goal?: string; // what the exercise is building towards
   trend?: 'up' | 'same' | 'down' | 'new' | 'volume';
+  easy?: boolean; // deliberately light day: ignored by progression
   sets: SetLog[];
 }
 export interface Session {

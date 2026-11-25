@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { syncReminders } from '../lib/notify';
 import { useStore } from '../store';
 import { c } from '../theme';
 
@@ -23,6 +24,13 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const st = useStore.getState();
+    // Keeps the training nudge pointing at the right session after each launch.
+    if (st.profile && Object.values(st.reminders ?? {}).some(Boolean)) syncReminders(st.reminders, st.profile.weighInDay, st.plan?.days[st.nextDay]?.name);
+  }, [hydrated]);
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
 
