@@ -1,7 +1,6 @@
 // Conversational coach. Talks to Claude with the user's own API key, kept in
 // the device keychain. Suitable for personal use; a public release must move
 // this call behind a server so no key ships in the app.
-import Anthropic from '@anthropic-ai/sdk';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
@@ -93,6 +92,8 @@ export class CoachError extends Error {}
 export async function askCoach(history: ChatTurn[], context: string): Promise<string> {
   const apiKey = await getApiKey();
   if (!apiKey) throw new CoachError('Add your Anthropic API key in Settings to talk to your coach.');
+  // Loaded on first use so the SDK is never evaluated while the app is starting.
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
   // The key is the user's own and lives only on their device, so direct calls are acceptable here.
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 1, timeout: 90_000 });
   try {
