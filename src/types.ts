@@ -73,7 +73,8 @@ export interface SessionEntry {
   why?: string; // coach's reasoning
   last?: string | null; // what happened last time
   goal?: string; // what the exercise is building towards
-  trend?: 'up' | 'same' | 'down' | 'new' | 'volume';
+  trend?: 'up' | 'same' | 'down' | 'new' | 'volume' | 'moved';
+  pos?: number; // where in the session this lift was done (0 = first)
   easy?: boolean; // deliberately light day: ignored by progression
   sets: SetLog[];
 }

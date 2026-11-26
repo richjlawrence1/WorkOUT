@@ -5,7 +5,7 @@ import Svg, { Circle, Polyline } from 'react-native-svg';
 import { ExerciseDemo } from '../../components/ExerciseDemo';
 import { shortDate } from '../../lib/dates';
 import { EQUIPMENT, EX, muscleLabel } from '../../lib/plan';
-import { bestE1rm, e1rm } from '../../lib/progression';
+import { STAGE_LABEL, type Stage, bestE1rm, e1rm, entryPos, ordinal, stageOf } from '../../lib/progression';
 import { useStore } from '../../store';
 import { c, f, s } from '../../theme';
 import { Body, Card, Chip, ChipRow, Eyebrow, Header, Row, Screen, Small, Stat, Title } from '../../ui';
@@ -24,10 +24,14 @@ export default function ExerciseDetail() {
       const sets = e?.sets.filter((x) => x.done && x.reps) ?? [];
       if (!sets.length) return null;
       const top = sets.reduce((a, b) => (e1rm(b.kg ?? 0, b.reps ?? 0) > e1rm(a.kg ?? 0, a.reps ?? 0) ? b : a));
-      return { date: new Date(sn.date), sets, best: e1rm(top.kg ?? 0, top.reps ?? 0) };
+      const pos = entryPos(sn, e!);
+      return { date: new Date(sn.date), sets, best: e1rm(top.kg ?? 0, top.reps ?? 0), pos, stage: stageOf(pos) };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
   const best = bestE1rm(sessions, ex.id);
+  // Chart the point in a session where this lift is done most, so the line compares like with like.
+  const stages = (['early', 'mid', 'late'] as Stage[]).map((sg) => ({ sg, rows: history.filter((h) => h.stage === sg), best: bestE1rm(sessions, ex.id, sg) })).filter((x) => x.rows.length);
+  const main = stages.slice().sort((a, b) => b.rows.length - a.rows.length)[0];
 
   return (
     <Screen>
@@ -51,10 +55,26 @@ export default function ExerciseDetail() {
             <Stat value={String(history.length)} label="Sessions" />
             {best > 0 ? <Stat value={best.toFixed(1)} unit="kg" label="Best est. 1RM" /> : null}
           </Row>
-          {history.length > 1 && best > 0 ? <Spark values={history.map((h) => h.best)} /> : null}
+          {best > 0 && stages.length > 1 ? (
+            <View style={{ marginTop: s.md }}>
+              {stages.map((x) => (
+                <Row key={x.sg} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
+                  <Small>Best {STAGE_LABEL[x.sg]}</Small>
+                  <Small style={{ color: c.text }}>{x.best.toFixed(1)} kg</Small>
+                </Row>
+              ))}
+            </View>
+          ) : null}
+          {main && main.rows.length > 1 && best > 0 ? (
+            <>
+              <Spark values={main.rows.map((h) => h.best)} />
+              <Small>Trend when done {STAGE_LABEL[main.sg]}</Small>
+            </>
+          ) : null}
+          <Small style={{ marginTop: s.md }}>You lift more at the start of a session than the end, so I only compare a lift with the times it sat at the same point.</Small>
           {history.slice(-4).reverse().map((h, i) => (
             <Row key={i} style={{ justifyContent: 'space-between', paddingTop: s.md }}>
-              <Small>{shortDate(h.date)}</Small>
+              <Small>{shortDate(h.date)} · {ordinal(h.pos)} lift</Small>
               <Small style={{ color: c.text }}>{h.sets.map((x) => (x.kg ? `${x.kg}×${x.reps}` : x.reps)).join('  ')}</Small>
             </Row>
           ))}

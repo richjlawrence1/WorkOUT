@@ -9,7 +9,7 @@ import { dayKey } from '../lib/dates';
 import { EX } from '../lib/plan';
 import { stretchFor } from '../lib/mobility';
 import { CARDIO_TYPES, warmupFor } from '../lib/prescription';
-import { sessionPRs, sessionVolume, setFeedback } from '../lib/progression';
+import { STAGE_LABEL, type Stage, sessionPRs, sessionVolume, setFeedback } from '../lib/progression';
 import { useStore } from '../store';
 import { c, f, radius, s } from '../theme';
 import type { Session, SessionEntry, SetLog } from '../types';
@@ -37,7 +37,7 @@ export default function Workout() {
   const [cue, setCue] = useState<string | null>(null);
   const restAlerts = useStore((x) => x.reminders.rest);
   const older = useStore((x) => (x.profile?.age ?? 0) >= 50);
-  const [summary, setSummary] = useState<{ sn: Session; prs: { exId: string; e1rm: number }[] } | null>(null);
+  const [summary, setSummary] = useState<{ sn: Session; prs: { exId: string; e1rm: number; stage: Stage }[] } | null>(null);
 
   if (summary) return <Summary {...summary} />;
   if (!active) {
@@ -388,7 +388,7 @@ function NumInput({ value, onChange, done, integer, label, placeholder }: { valu
   );
 }
 
-function Summary({ sn, prs }: { sn: Session; prs: { exId: string; e1rm: number }[] }) {
+function Summary({ sn, prs }: { sn: Session; prs: { exId: string; e1rm: number; stage: Stage }[] }) {
   const cardio = useStore((x) => x.cardioLog.filter((l) => l.date === dayKey(new Date(sn.date))).reduce((m, l) => m + l.minutes, 0));
   const sets = sn.entries.reduce((n, e) => n + e.sets.length, 0);
   return (
@@ -409,7 +409,10 @@ function Summary({ sn, prs }: { sn: Session; prs: { exId: string; e1rm: number }
           <Eyebrow>Personal records</Eyebrow>
           {prs.map((p) => (
             <Row key={p.exId} style={{ justifyContent: 'space-between', paddingTop: s.md }}>
-              <Body>{EX[p.exId]?.name}</Body>
+              <View style={{ flex: 1 }}>
+                <Body>{EX[p.exId]?.name}</Body>
+                {p.stage !== 'early' ? <Small>Your best {STAGE_LABEL[p.stage]}</Small> : null}
+              </View>
               <Small style={{ color: c.gold }}>est. 1RM {p.e1rm.toFixed(1)} kg</Small>
             </Row>
           ))}

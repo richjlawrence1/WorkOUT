@@ -34,6 +34,7 @@ How to answer:
 - For pain, injury or medical questions, give sensible training adjustments and say when it needs a physio or GP. Never recommend eating below their calorie floor or rapid weight loss.
 
 How the app's rules work:
+- Session order: a lift's history is tracked separately for early (1st-2nd lift), mid (3rd-4th) and late (5th onwards) in a session, because fatigue makes later lifts weaker. Targets and records only compare like with like. When a lift moves to a new point for the first time, its weight is estimated at about 5% less per stage later.
 - Progression: when every set of a lift reaches the top of its rep range, the weight goes up next session and reps restart at the bottom. Otherwise the weight holds and the target is one more rep. Three sessions stuck at one weight adds a set. Two sessions below the rep range drops the weight 10% and removes a set.
 - Weekly check-in: compares the 7-day average weight with the week before and moves one lever at a time. For fat loss that is too slow the order is: follow the plan first, then hit the step target, then do the prescribed cardio, then cardio goes up 5-10 minutes per session (to a 45 minute ceiling), then steps go up, and only then calories drop by 150. Losing too fast removes cardio or adds 150 calories. For muscle gain, calories move by 150.
 - Training blocks: if no main lift improves in a week the big lifts move to two fewer reps (heavier) for three weeks; poor sleep and energy together trigger a recovery week with one set fewer.`;
@@ -65,8 +66,8 @@ export function buildContext(): string {
   if (st.plan) {
     lines.push(`\nProgramme (${st.plan.split}); next up is ${st.plan.days[st.nextDay]?.name}:`);
     for (const d of st.plan.days) {
-      lines.push(`- ${d.name}: ` + d.exercises.map((pe) => {
-        const nt = nextTarget(st.sessions, pe, p.goal);
+      lines.push(`- ${d.name}: ` + d.exercises.map((pe, pos) => {
+        const nt = nextTarget(st.sessions, pe, p.goal, pos);
         return `${EX[pe.exId]?.name} ${nt.sets}x${pe.repMin}-${pe.repMax}${nt.kg ? ` @ ${nt.kg} kg` : ''} [${nt.trend}]`;
       }).join('; '));
     }
@@ -74,7 +75,7 @@ export function buildContext(): string {
   if (st.sessions.length) {
     lines.push('\nRecent sessions (most recent last):');
     for (const sn of st.sessions.slice(-6)) {
-      lines.push(`- ${sn.date.slice(0, 10)} ${sn.dayName}, ${Math.round(sn.durationSec / 60)} min: ` + sn.entries.map((e) => `${EX[e.exId]?.name} ${e.sets.map((x) => `${x.kg ?? 'bw'}x${x.reps}`).join(',')}`).join('; '));
+      lines.push(`- ${sn.date.slice(0, 10)} ${sn.dayName}, ${Math.round(sn.durationSec / 60)} min: ` + sn.entries.map((e, i) => `#${(e.pos ?? i) + 1} ${EX[e.exId]?.name} ${e.sets.map((x) => `${x.kg ?? 'bw'}x${x.reps}`).join(',')}`).join('; '));
     }
   }
   const meals = st.mealPlan?.days[todayIndex()] ?? [];
