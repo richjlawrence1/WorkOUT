@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { windowAvg } from '../lib/checkin';
 import { addDays, dayKey, fromKey, shortDate } from '../lib/dates';
 import { weekNutrition } from '../lib/insights';
+import { ageNote, mobilityShare, mobilityTarget } from '../lib/mobility';
 import { CARDIO_TYPES, PHASE_LABEL, projection } from '../lib/prescription';
 import { bodyParts, deltaParts, fmtAmount, fmtBody } from '../lib/units';
 import { selectTargets, selectWeight, sessionsThisWeek, useStore } from '../store';
@@ -122,6 +123,8 @@ export function CoachPlan() {
   const p = st0.profile!;
   const t = selectTargets(st0)!;
   const last = st0.checkins[st0.checkins.length - 1];
+  const mob = mobilityTarget(p);
+  const share = mobilityShare(p, st0.stretchOn);
   const changed = (label: string) => last?.changes?.find((x) => x.label === label);
   const row = (icon: React.ComponentProps<typeof Feather>['name'], label: string, value: string, key: string) => {
     const ch = changed(key);
@@ -145,7 +148,10 @@ export function CoachPlan() {
       {row('zap', 'Calories', `${t.kcal} kcal · ${t.protein} g protein`, 'Calories')}
       {row('heart', 'Cardio', st0.cardioMins ? `${st0.cardioMins} min after each session · ${st0.cardioMins * p.daysPerWeek} min a week` : 'None this week', 'Cardio')}
       {row('navigation', 'Steps', `${st0.stepTarget.toLocaleString()} a day`, 'Daily steps')}
+      {row('wind', 'Mobility', `${mob ? `${mob} session${mob === 1 ? '' : 's'} a week` : 'Optional sessions'}${st0.stretchOn ? ' · 10 min stretch after training' : ''}${share ? ` · ${share}% of your training time` : ''}`, 'Mobility')}
       {row('repeat', 'Training', `${p.daysPerWeek} sessions · ${PHASE_LABEL[st0.phase]}`, 'Reps')}
+      {ageNote(p.age) ? <Small style={{ marginTop: s.md, color: c.text }}>{ageNote(p.age)}</Small> : null}
+      {p.injuries?.length ? <Small style={{ marginTop: s.sm, color: c.text }}>Built around your {p.injuries.map((a) => a.replace('_', ' ')).join(' and ')}: exercises that load {p.injuries.length > 1 ? 'them' : 'it'} are left out.</Small> : null}
       <Small style={{ marginTop: s.md }}>
         {last ? 'I review this at every weekly check-in and move one thing at a time.' : 'Your first check-in is a week after you start. I adjust this from your results.'}
       </Small>

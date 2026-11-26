@@ -1,35 +1,11 @@
 // Rebuilds today's session around a sore area, limited time or low energy.
 import type { PlanDay, Profile, Session, SessionEntry, Slot } from '../types';
+import { AREAS, AVOID, REDIRECT, SAFE, areaLabel as label, type Area } from './injuries';
 import { EX, available } from './plan';
 import { buildEntries } from './progression';
 
-export type Area = 'shoulder' | 'lower_back' | 'knee' | 'elbow' | 'wrist';
-export const AREAS: [Area, string][] = [['shoulder', 'Shoulder'], ['lower_back', 'Lower back'], ['knee', 'Knee'], ['elbow', 'Elbow'], ['wrist', 'Wrist']];
-
-/** Movements that load each area. Anything here is swapped out or dropped. */
-const AVOID: Record<Area, Slot[]> = {
-  shoulder: ['shoulder_press', 'incline_press', 'chest_press', 'lateral', 'chest_fly', 'pulldown'],
-  lower_back: ['hinge', 'squat', 'row'],
-  knee: ['squat', 'lunge', 'quad_iso'],
-  elbow: ['triceps', 'biceps', 'chest_press', 'shoulder_press'],
-  wrist: ['chest_press', 'shoulder_press', 'biceps', 'triceps'],
-};
-/** Exercises that stay comfortable for an area even though their slot is on its avoid list. */
-const SAFE: Record<Area, string[]> = {
-  shoulder: ['face_pull', 'band_pull_apart'],
-  lower_back: ['leg_press', 'seated_cable_rows', 'leverage_iso_row', 'hack_squat', 'lying_leg_curls', 'seated_leg_curl', 'butt_lift_bridge', 'single_leg_glute_bridge'],
-  knee: [],
-  elbow: ['machine_bench_press', 'butterfly'],
-  wrist: ['machine_bench_press', 'machine_shoulder_military_press', 'butterfly', 'triceps_pushdown_-_rope_attachment'.replace(/[^a-z0-9]/g, '_')],
-};
-/** Where the freed-up work goes instead. */
-const REDIRECT: Record<Area, Slot[]> = {
-  shoulder: ['row', 'rear_delt', 'biceps', 'core'],
-  lower_back: ['quad_iso', 'ham_curl', 'glute', 'core', 'calf'],
-  knee: ['hinge', 'ham_curl', 'glute', 'calf', 'core'],
-  elbow: ['lateral', 'rear_delt', 'core', 'chest_fly'],
-  wrist: ['lateral', 'rear_delt', 'core', 'pulldown'],
-};
+export { AREAS };
+export type { Area };
 
 export interface Adjustment {
   areas: Area[];
@@ -42,7 +18,6 @@ export interface Adjusted {
   changes: string[];
 }
 
-const label = (a: Area) => AREAS.find((x) => x[0] === a)![1].toLowerCase();
 
 export function adjustSession(day: PlanDay, sessions: Session[], profile: Profile, adj: Adjustment): Adjusted {
   const changes: string[] = [];

@@ -37,6 +37,7 @@ export interface Profile {
   activity: Activity;
   equipment: string[];
   weighInDay: number; // 0 = Sunday
+  injuries?: ('shoulder' | 'lower_back' | 'knee' | 'elbow' | 'wrist')[]; // long-term problem areas
   units?: 'kg' | 'lb' | 'st'; // body-weight display; lifts are always kg
 }
 

@@ -3,6 +3,8 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { EquipmentPicker } from '../components/EquipmentPicker';
 import { DAYS } from '../lib/dates';
+import { AREAS, type Area } from '../lib/injuries';
+import { ageNote, mobilityTarget } from '../lib/mobility';
 import { targets } from '../lib/nutrition';
 import { ALL_EQUIPMENT, generatePlan } from '../lib/plan';
 import { useStore } from '../store';
@@ -28,7 +30,7 @@ const ACTIVITY: [Activity, string, string][] = [
   ['very', 'Very active', 'Physical job or lots of sport'],
 ];
 
-const STEPS = 8;
+const STEPS = 9;
 
 export default function Onboarding() {
   const complete = useStore((st) => st.completeOnboarding);
@@ -46,6 +48,7 @@ export default function Onboarding() {
   const [mins, setMins] = useState(60);
   const [equipment, setEquipment] = useState<string[]>(ALL_EQUIPMENT);
   const [weighInDay, setWeighInDay] = useState(1);
+  const [injuries, setInjuries] = useState<Area[]>([]);
 
   const n = (v: string) => parseFloat(v.replace(',', '.'));
   const inRange = (v: string, lo: number, hi: number) => n(v) >= lo && n(v) <= hi;
@@ -56,9 +59,9 @@ export default function Onboarding() {
     return {
       name: name.trim(), sex, age: Math.round(n(age)), heightCm: n(height), startWeightKg: n(weight),
       targetWeightKg: inRange(target, 35, 250) ? n(target) : n(weight),
-      goal, experience, activity, daysPerWeek: days, sessionMins: mins, equipment, weighInDay,
+      goal, experience, activity, daysPerWeek: days, sessionMins: mins, equipment, weighInDay, injuries,
     };
-  }, [name, sex, age, height, weight, target, goal, experience, activity, days, mins, equipment, weighInDay]);
+  }, [name, sex, age, height, weight, target, goal, experience, activity, days, mins, equipment, weighInDay, injuries]);
 
   const valid = [
     true,
@@ -66,6 +69,7 @@ export default function Onboarding() {
     !!goal,
     inRange(age, 14, 90) && inRange(height, 120, 230) && inRange(weight, 35, 250),
     !!experience && !!activity,
+    true,
     true,
     true,
     !!profile,
@@ -158,6 +162,21 @@ export default function Onboarding() {
 
       {step === 5 && (
         <>
+          <Title>Any injuries or problem areas?</Title>
+          <Body muted style={{ marginTop: s.sm }}>Old injuries, niggles, anything that complains under load. I'll keep exercises that stress them out of your programme.</Body>
+          <ChipRow style={{ marginTop: s.xl }}>
+            <Chip label="None" selected={!injuries.length} onPress={() => setInjuries([])} />
+            {AREAS.map(([k, label]) => {
+              const on = injuries.includes(k);
+              return <Chip key={k} label={label} selected={on} onPress={() => setInjuries(on ? injuries.filter((x) => x !== k) : [...injuries, k])} />;
+            })}
+          </ChipRow>
+          <Small style={{ marginTop: s.lg }}>This shapes exercise choice. It isn't medical advice: anything painful or recent should be checked by a physio or GP first.</Small>
+        </>
+      )}
+
+      {step === 6 && (
+        <>
           <Title>Your schedule</Title>
           <Eyebrow style={{ marginTop: s.xl, marginBottom: s.md }}>Training days per week</Eyebrow>
           <Stepper value={days} onChange={setDays} min={2} max={6} suffix="days" />
@@ -170,7 +189,7 @@ export default function Onboarding() {
         </>
       )}
 
-      {step === 6 && (
+      {step === 7 && (
         <>
           <Title>What equipment do you have?</Title>
           <Body muted style={{ marginTop: s.sm }}>Every exercise I programme will use only what you select. You can change this any time.</Body>
@@ -178,7 +197,7 @@ export default function Onboarding() {
         </>
       )}
 
-      {step === 7 && preview && (
+      {step === 8 && preview && (
         <>
           <Eyebrow>Your programme</Eyebrow>
           <Title style={{ marginTop: s.sm }}>Ready{name ? `, ${name.trim()}` : ''}.</Title>
@@ -203,6 +222,14 @@ export default function Onboarding() {
               <Stat value={String(preview.t.fat)} unit="g" label="Fat" />
             </Row>
           </Card>
+          {ageNote(profile!.age) || injuries.length ? (
+            <Card style={{ marginTop: s.md }}>
+              <Eyebrow>Built for you</Eyebrow>
+              {ageNote(profile!.age) ? <Body style={{ marginTop: s.sm, fontSize: 14, lineHeight: 20 }}>{ageNote(profile!.age)}</Body> : null}
+              {injuries.length ? <Body style={{ marginTop: s.sm, fontSize: 14, lineHeight: 20 }}>Exercises that load your {injuries.map((a) => a.replace('_', ' ')).join(' and ')} have been left out and replaced.</Body> : null}
+              <Small style={{ marginTop: s.sm }}>{mobilityTarget(profile!) ? `${mobilityTarget(profile!)} mobility session${mobilityTarget(profile!) === 1 ? '' : 's'} a week, plus` : 'Includes'} a 5 minute warm-up and 10 minute stretch with every session. You can switch either off.</Small>
+            </Card>
+          ) : null}
           <Body muted style={{ marginTop: s.lg }}>
             Weights progress automatically from what you log. Each week I'll check in, review your weigh-ins and retune your calories.
           </Body>

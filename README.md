@@ -19,6 +19,8 @@ A personal trainer and nutrition coach in one app. Built with Expo (React Native
 - **Cardio, steps and warm-ups** – every session opens with a warm-up and closes with prescribed cardio; a daily step target is logged by hand.
 - **Coach-led check-in** – the weekly review moves one lever at a time (steps, cardio, rep block, calories) and explains each change.
 - **Dashboard** – goal, distance to go and forecast date, six weekly stats, and the coach's current prescription.
+- **Built around age and injuries** – problem areas named in onboarding keep exercises that load them out of the programme; age raises the rep floor and sets a weekly mobility target.
+- **Mobility** – a guided full-body mobility session, plus a 5-minute warm-up and 10-minute stretch in every workout, each with an on/off toggle.
 - **Weigh-ins and weekly check-in** – a weekly review of weight trend, sessions and intake that retunes your calories.
 - **Meal planner** – a seven-day plan fitted to your calorie and protein targets. Exclude foods you don't like, heart favourites to have them repeat, swap meals, and get a shopping list.
 - **Food diary** – scan a barcode (Open Food Facts, good UK supermarket coverage including Aldi), search by name, or enter values manually.
@@ -37,6 +39,7 @@ Scan the QR code with the Expo Go app on your phone. Barcode scanning needs a re
 ```bash
 npm run typecheck                                   # type-check
 npm run build:exercises -- path/to/exercises.json   # regenerate the exercise library
+node scripts/build-mobility.mjs path/to/exercises.json  # regenerate the mobility drills
 ```
 
 ## Project layout

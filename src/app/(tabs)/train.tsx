@@ -5,18 +5,22 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ExerciseDemo } from '../../components/ExerciseDemo';
 import { EX, alternatives, estMinutes } from '../../lib/plan';
 import { nextTarget } from '../../lib/progression';
+import { mobilityTarget } from '../../lib/mobility';
 import { PHASE_LABEL, phasedDay } from '../../lib/prescription';
 import { useStore } from '../../store';
 import { c, f, radius, s } from '../../theme';
 import { Body, Button, Card, Chip, ChipRow, Eyebrow, IconButton, Row, Screen, Small, Title } from '../../ui';
 
 export default function Train() {
-  const { profile, plan, nextDay, sessions, active, startWorkout, swapExercise, regeneratePlan, phase, cardioMins } = useStore();
+  const { profile, plan, nextDay, sessions, active, startWorkout, swapExercise, regeneratePlan, phase, cardioMins, warmupOn, stretchOn, setSessionPrefs, mobilityLog } = useStore();
   const [sel, setSel] = useState(nextDay);
   const [swapping, setSwapping] = useState<number | null>(null);
   if (!profile || !plan) return null;
   const day = phasedDay(plan.days[Math.min(sel, plan.days.length - 1)], phase);
   const inPlan = day.exercises.map((e) => e.exId);
+  const mobTarget = mobilityTarget(profile);
+  const weekAgo = Date.now() - 7 * 864e5;
+  const mobDone = mobilityLog.filter((x) => x.kind === 'session' && new Date(x.date).getTime() > weekAgo).length;
 
   return (
     <Screen>
@@ -39,8 +43,13 @@ export default function Train() {
         <View>
           <Text style={st.dayName}>{day.name}</Text>
           <Small>{day.focus} · about {estMinutes(day)} min{phase !== 'standard' ? ` · ${PHASE_LABEL[phase]}` : ''}</Small>
-          <Small>5 min warm-up first{cardioMins ? `, ${cardioMins} min cardio to finish` : ''}</Small>
+          <Small>{[warmupOn ? '5 min warm-up' : null, cardioMins ? `${cardioMins} min cardio` : null, stretchOn ? '10 min stretch' : null].filter(Boolean).join(' · ') || 'Weights only'}</Small>
         </View>
+      </Row>
+
+      <Row style={{ gap: s.sm, marginBottom: s.md }}>
+        <Toggle label="Warm-up" sub="5 min" on={warmupOn} onPress={() => setSessionPrefs({ warmupOn: !warmupOn })} />
+        <Toggle label="Stretch" sub="10 min" on={stretchOn} onPress={() => setSessionPrefs({ stretchOn: !stretchOn })} />
       </Row>
 
       {day.exercises.map((pe, i) => {
@@ -94,12 +103,37 @@ export default function Train() {
         }}
       />
       {!active ? <Button label="Sore, tired or short on time?" variant="quiet" icon="sliders" onPress={() => router.push({ pathname: '/adjust', params: { day: String(sel) } })} style={{ marginTop: s.sm }} /> : null}
+      <Card style={{ marginTop: s.xl }} onPress={() => router.push('/mobility')}>
+        <Row>
+          <View style={{ flex: 1 }}>
+            <Eyebrow>Mobility session</Eyebrow>
+            <Body style={{ marginTop: 4 }}>Full-body flow, no equipment. {mobTarget ? `${mobDone} of ${mobTarget} done this week.` : 'Do it on a rest day or whenever you feel stiff.'}</Body>
+          </View>
+          <Feather name="arrow-right" size={20} color={c.gold} />
+        </Row>
+      </Card>
       <Button label="Refresh exercise selection" variant="quiet" icon="refresh-cw" onPress={regeneratePlan} style={{ marginTop: s.sm }} />
     </Screen>
   );
 }
 
+function Toggle({ label, sub, on, onPress }: { label: string; sub: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={`${label} ${sub}`} onPress={onPress} style={[st.toggle, on && st.toggleOn]}>
+      <View style={{ flex: 1 }}>
+        <Body style={{ fontFamily: f.medium, color: on ? c.cream : c.muted }}>{label}</Body>
+        <Small>{sub} · {on ? 'On' : 'Off'}</Small>
+      </View>
+      <View style={[st.sw, on && { backgroundColor: c.gold }]}><View style={[st.knob, on && { alignSelf: 'flex-end', backgroundColor: '#17130A' }]} /></View>
+    </Pressable>
+  );
+}
+
 const st = StyleSheet.create({
+  toggle: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: s.md, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  toggleOn: { borderColor: c.goldDim },
+  sw: { width: 40, height: 24, borderRadius: 12, backgroundColor: c.line, padding: 3, justifyContent: 'center' },
+  knob: { width: 18, height: 18, borderRadius: 9, backgroundColor: c.muted },
   dayName: { color: c.cream, fontFamily: f.serifSemi, fontSize: 22, letterSpacing: -0.4 },
   thumb: { width: 72, aspectRatio: 1, borderRadius: radius.sm },
   swapBox: { marginTop: s.md, paddingTop: s.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },

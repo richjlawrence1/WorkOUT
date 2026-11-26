@@ -33,6 +33,8 @@ export interface CoachState {
   phase: Phase;
   phaseWeeks: number;
   kcalTarget: number;
+  mobilityTarget?: number;
+  mobilityDone?: number;
 }
 
 /**
@@ -165,6 +167,12 @@ export function buildCheckIn(
 
   if (cardioPlanned > 0 && !cardioDelta && cardioDone >= cardioPlanned) actions.push(`Cardio done: ${cardioDone} minutes against ${cardioPlanned} planned.`);
   if (avgSteps == null) actions.push('Log your steps on at least three days. They are the easiest lever I have, and I can only use what I can see.');
+  if (coach.mobilityTarget) {
+    const done = coach.mobilityDone ?? 0;
+    actions.push(done >= coach.mobilityTarget
+      ? `Mobility done: ${done} of ${coach.mobilityTarget} sessions.`
+      : `Mobility: ${done} of ${coach.mobilityTarget} sessions. It's the part that keeps you training pain-free, so book ${coach.mobilityTarget - done === 1 ? 'it' : 'them'} in on rest days.`);
+  }
   if (a.sleep <= 2 && phase !== 'recovery') actions.push('Sleep was poor. Aim for a fixed bedtime and no caffeine after 2pm; recovery drives progress.');
   if (a.hunger >= 4) actions.push('Hunger is high. Lean on protein and high-volume foods: potatoes, veg, fruit, yoghurt.');
   if (avgKcal == null) actions.push('Log your food on at least three days so I can compare intake against your target.');

@@ -51,6 +51,7 @@ export function buildContext(): string {
 
   lines.push(`Today: ${new Date().toDateString()}`);
   lines.push(`Profile: ${p.name || 'User'}, ${p.sex}, ${p.age}y, ${p.heightCm} cm. Goal: ${p.goal}. Experience: ${p.experience}. Trains ${p.daysPerWeek} days/week, ${p.sessionMins} min sessions.`);
+  lines.push(`Long-term injuries or problem areas: ${p.injuries?.length ? p.injuries.join(', ') : 'none reported'}. Warm-up ${st.warmupOn ? 'on' : 'off'}, post-session stretch ${st.stretchOn ? 'on' : 'off'}. Mobility sessions logged in the last 7 days: ${st.mobilityLog.filter((x) => x.kind === 'session' && Date.now() - new Date(x.date).getTime() < 7 * 864e5).length}.`);
   lines.push(`Body weight: now ${selectWeight(st).toFixed(1)} kg, started ${p.startWeightKg} kg, goal ${p.targetWeightKg} kg.`);
   lines.push(`Recent weigh-ins: ${st.weights.slice(-10).map((w) => `${w.date} ${w.kg}`).join('; ') || 'none'}`);
   lines.push(`Daily targets: ${t.kcal} kcal, ${t.protein} g protein, ${t.carbs} g carbs, ${t.fat} g fat (check-in adjustment so far: ${st.kcalAdjust} kcal).`);

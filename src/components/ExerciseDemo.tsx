@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { EXERCISE_IMAGES } from '../data/exercises';
+import { DRILL_IMAGES } from '../data/mobility';
 import { c, radius } from '../theme';
 
 /**
@@ -10,7 +11,7 @@ import { c, radius } from '../theme';
  */
 export function ExerciseDemo({ id, style, animate = true, rounded = true }: { id: string; style?: StyleProp<ViewStyle>; animate?: boolean; rounded?: boolean }) {
   const fade = useRef(new Animated.Value(0)).current;
-  const imgs = EXERCISE_IMAGES[id];
+  const imgs = EXERCISE_IMAGES[id] ?? DRILL_IMAGES[id];
 
   useEffect(() => {
     if (!animate) return;

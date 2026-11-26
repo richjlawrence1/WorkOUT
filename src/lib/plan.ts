@@ -1,4 +1,5 @@
 import { EXERCISES } from '../data/exercises';
+import { REDIRECT, blockedFor } from './injuries';
 import type { Exercise, Level, Plan, PlanDay, PlanExercise, Profile, Slot } from '../types';
 
 export const EX: Record<string, Exercise> = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));
@@ -51,10 +52,11 @@ export const EQUIPMENT_PRESETS: Record<string, string[]> = {
 
 const LEVELS: Level[] = ['beginner', 'intermediate', 'advanced'];
 
-export const available = (profile: Pick<Profile, 'equipment' | 'experience'>, slot?: string): Exercise[] =>
+export const available = (profile: Pick<Profile, 'equipment' | 'experience' | 'injuries'>, slot?: string): Exercise[] =>
   EXERCISES.filter(
     (e) =>
       (!slot || e.slot === slot) &&
+      !blockedFor(profile.injuries, e) &&
       e.equipment.every((q) => profile.equipment.includes(q)) &&
       LEVELS.indexOf(e.level as Level) <= LEVELS.indexOf(profile.experience)
   );
@@ -102,16 +104,18 @@ const FALLBACK: Partial<Record<Slot, Slot[]>> = {
   lunge: ['squat'],
 };
 
-export const prescription = (ex: Exercise, profile: Pick<Profile, 'goal' | 'experience'>) => {
+export const prescription = (ex: Exercise, profile: Pick<Profile, 'goal' | 'experience' | 'age'>) => {
+  // Past 50, heavy low-rep work costs more in joint wear than it returns, so the floor rises.
+  const older = (profile.age ?? 0) >= 50;
   const sets = profile.experience === 'beginner' ? 3 : ex.compound ? 4 : 3;
   if (ex.timed) return { sets: 3, repMin: 30, repMax: 60 };
   if (ex.bodyweight) return { sets, repMin: 8, repMax: 15 };
   if (ex.slot === 'core' || ex.slot === 'calf') return { sets: 3, repMin: 10, repMax: 15 };
   if (!ex.compound) return { sets, repMin: 10, repMax: 15 };
   switch (profile.goal) {
-    case 'strength': return { sets, repMin: 4, repMax: 6 };
+    case 'strength': return older ? { sets, repMin: 5, repMax: 8 } : { sets, repMin: 4, repMax: 6 };
     case 'lose': return { sets, repMin: 8, repMax: 12 };
-    default: return { sets, repMin: 6, repMax: 10 };
+    default: return older ? { sets, repMin: 8, repMax: 12 } : { sets, repMin: 6, repMax: 10 };
   }
 };
 
@@ -143,6 +147,15 @@ export function generatePlan(profile: Profile, seed = 0): Plan {
       usedToday.add(pick.id);
       usedInWeek[pick.id] = (usedInWeek[pick.id] ?? 0) + 1;
       exercises.push({ exId: pick.id, slot: pick.slot as Slot, ...prescription(pick, profile) });
+    }
+    // Problem areas can empty a slot. Fill the gap with work that avoids them.
+    const spare = [...(profile.injuries ?? []).flatMap((a) => REDIRECT[a]), 'core' as Slot];
+    for (const sl of spare) {
+      if (exercises.length >= n) break;
+      const alt = available(profile, sl).find((e) => !usedToday.has(e.id));
+      if (!alt) continue;
+      usedToday.add(alt.id);
+      exercises.push({ exId: alt.id, slot: alt.slot as Slot, ...prescription(alt, profile) });
     }
     const repeat = split.days.indexOf(key) !== di;
     return { id: `d${di}`, name: repeat ? `${t.name} II` : t.name, focus: t.focus, exercises };

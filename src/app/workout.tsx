@@ -7,6 +7,7 @@ import { plateLine, usesBarbell, warmupSets } from '../lib/barbell';
 import { cancelRestAlert, scheduleRestAlert } from '../lib/notify';
 import { dayKey } from '../lib/dates';
 import { EX } from '../lib/plan';
+import { stretchFor } from '../lib/mobility';
 import { CARDIO_TYPES, warmupFor } from '../lib/prescription';
 import { sessionPRs, sessionVolume, setFeedback } from '../lib/progression';
 import { useStore } from '../store';
@@ -35,6 +36,7 @@ export default function Workout() {
   const [confirm, setConfirm] = useState<'discard' | 'finish' | null>(null);
   const [cue, setCue] = useState<string | null>(null);
   const restAlerts = useStore((x) => x.reminders.rest);
+  const older = useStore((x) => (x.profile?.age ?? 0) >= 50);
   const [summary, setSummary] = useState<{ sn: Session; prs: { exId: string; e1rm: number }[] } | null>(null);
 
   if (summary) return <Summary {...summary} />;
@@ -70,7 +72,7 @@ export default function Workout() {
         ...e,
         sets: e.sets.map((x, i) => (i === si ? { ...x, done: true } : i > si && !x.done ? { ...x, kg: set.kg } : x)),
       }));
-      const secs = ex?.compound ? 120 : 75;
+      const secs = (ex?.compound ? 120 : 75) + (older ? 30 : 0);
       setRestEnd(Date.now() + secs * 1000);
       const upNext = after.sets.some((x) => !x.done) ? ex?.name : EX[entries[ei + 1]?.exId]?.name;
       if (restAlerts && upNext) scheduleRestAlert(secs, upNext);
@@ -209,6 +211,7 @@ export default function Workout() {
         );
       })}
       <CardioCard />
+      <StretchCard />
     </Screen>
   );
 }
@@ -217,8 +220,9 @@ function WarmupCard() {
   const active = useStore((x) => x.active);
   const plan = useStore((x) => x.plan);
   const patchActive = useStore((x) => x.patchActive);
+  const on = useStore((x) => x.warmupOn);
   const day = plan?.days.find((d) => d.id === active?.dayId);
-  if (!active || !day) return null;
+  if (!active || !day || !on) return null;
   if (active.warmupDone) {
     return (
       <Row style={{ gap: s.sm, marginTop: s.lg }}>
@@ -238,6 +242,43 @@ function WarmupCard() {
         </Row>
       ))}
       <Button label="Warm-up done" icon="check" small variant="ghost" style={{ marginTop: s.lg, alignSelf: 'flex-start' }} onPress={() => { thud(); patchActive({ warmupDone: true }); }} />
+    </Card>
+  );
+}
+
+function StretchCard() {
+  const active = useStore((x) => x.active);
+  const plan = useStore((x) => x.plan);
+  const on = useStore((x) => x.stretchOn);
+  const patchActive = useStore((x) => x.patchActive);
+  const day = plan?.days.find((d) => d.id === active?.dayId);
+  if (!active || !day || !on) return null;
+  if (active.stretchDone) {
+    return (
+      <Row style={{ gap: s.sm, marginTop: s.lg }}>
+        <Feather name="check-circle" size={15} color={c.gold} />
+        <Small style={{ color: c.text }}>Stretch done</Small>
+      </Row>
+    );
+  }
+  const drills = stretchFor(day);
+  return (
+    <Card style={{ marginTop: s.md }}>
+      <Eyebrow>Stretch to finish · 10 min</Eyebrow>
+      <Small style={{ marginTop: 4 }}>Hold each one without bouncing and breathe out as you sink in. Muscles are warm now, so this is when stretching works best.</Small>
+      {drills.map((d) => (
+        <Pressable key={d.id} accessibilityRole="button" accessibilityLabel={`How to do ${d.name}`} onPress={() => router.push(`/drill/${d.id}`)}>
+          <Row style={{ marginTop: s.md }}>
+            <ExerciseDemo id={d.id} animate={false} style={st.thumb} />
+            <View style={{ flex: 1 }}>
+              <Body numberOfLines={1}>{d.name}</Body>
+              <Small>{d.seconds} sec{d.sides ? ' each side' : ''}</Small>
+            </View>
+            <Feather name="info" size={16} color={c.faint} />
+          </Row>
+        </Pressable>
+      ))}
+      <Button label="Stretch done" icon="check" small variant="ghost" style={{ marginTop: s.lg, alignSelf: 'flex-start' }} onPress={() => { thud(); patchActive({ stretchDone: true }); }} />
     </Card>
   );
 }

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { EquipmentPicker } from '../components/EquipmentPicker';
 import { getApiKey, setApiKey } from '../lib/coachChat';
+import { AREAS, type Area } from '../lib/injuries';
 import { DAYS } from '../lib/dates';
 import { DEFAULT_REMINDERS, ReminderPrefs, ensurePermission, syncReminders } from '../lib/notify';
 import { SUPERMARKETS } from '../lib/prices';
@@ -27,6 +28,8 @@ export default function Settings() {
   const [weighInDay, setWeighInDay] = useState(profile?.weighInDay ?? 1);
   const [confirmReset, setConfirmReset] = useState(false);
   const [units, setUnits] = useState<Units>(profile?.units ?? 'kg');
+  const [age, setAge] = useState(String(profile?.age ?? ''));
+  const [injuries, setInjuries] = useState<Area[]>(profile?.injuries ?? []);
   const [key, setKey] = useState('');
   const [keySaved, setKeySaved] = useState<boolean | null>(null);
   const [notifMsg, setNotifMsg] = useState<string | null>(null);
@@ -45,10 +48,13 @@ export default function Settings() {
   };
   if (!profile) return null;
 
+  const ageNum = Math.round(parseFloat(age));
+  const ageOk = ageNum >= 14 && ageNum <= 90;
   const t = selectTargets({ ...st0, profile: { ...profile, goal, daysPerWeek: days } })!;
   const planChanged =
     days !== profile.daysPerWeek || mins !== profile.sessionMins || goal !== profile.goal ||
-    equipment.length !== profile.equipment.length || equipment.some((x) => !profile.equipment.includes(x));
+    equipment.length !== profile.equipment.length || equipment.some((x) => !profile.equipment.includes(x)) ||
+    (ageOk && ageNum !== profile.age) || injuries.length !== (profile.injuries ?? []).length || injuries.some((x) => !(profile.injuries ?? []).includes(x));
   const dirty = planChanged || weighInDay !== profile.weighInDay || units !== (profile.units ?? 'kg');
 
   return (
@@ -58,7 +64,7 @@ export default function Settings() {
           label={planChanged ? 'Save & rebuild programme' : 'Save'}
           disabled={!dirty}
           onPress={() => {
-            updateProfile({ equipment, daysPerWeek: days, sessionMins: mins, goal, weighInDay, units }, planChanged);
+            updateProfile({ equipment, daysPerWeek: days, sessionMins: mins, goal, weighInDay, units, injuries, ...(ageOk ? { age: ageNum } : {}) }, planChanged);
             syncReminders(reminders, weighInDay, st0.plan?.days[st0.nextDay]?.name);
             router.back();
           }}
@@ -79,6 +85,20 @@ export default function Settings() {
           <Stat value={String(t.fat)} unit="g" label="Fat" />
         </Row>
       </Card>
+
+      <Eyebrow style={{ marginTop: s.xl, marginBottom: s.md }}>Age</Eyebrow>
+      <Field value={age} onChangeText={setAge} numeric suffix="yrs" />
+      <Small style={{ marginTop: s.sm }}>Sets how much mobility work is in your week and how heavy the low-rep work goes.</Small>
+
+      <Eyebrow style={{ marginTop: s.xl, marginBottom: s.md }}>Injuries and problem areas</Eyebrow>
+      <ChipRow>
+        <Chip label="None" selected={!injuries.length} onPress={() => setInjuries([])} />
+        {AREAS.map(([k, label]) => {
+          const on = injuries.includes(k);
+          return <Chip key={k} label={label} selected={on} onPress={() => setInjuries(on ? injuries.filter((x) => x !== k) : [...injuries, k])} />;
+        })}
+      </ChipRow>
+      <Small style={{ marginTop: s.sm }}>Exercises that load these are kept out of your programme.</Small>
 
       <Eyebrow style={{ marginTop: s.xl, marginBottom: s.md }}>Training days per week</Eyebrow>
       <Stepper value={days} onChange={setDays} min={2} max={6} suffix="days" />

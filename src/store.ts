@@ -15,6 +15,7 @@ import type {
 } from './types';
 
 interface Active {
+  stretchDone?: boolean;
   warmupDone?: boolean;
   cardio?: { minutes: number; type: string } | null;
   startedAt: string;
@@ -49,6 +50,9 @@ interface State {
   cardioLog: CardioLog[];
   phase: Phase;
   phaseWeeks: number;
+  warmupOn: boolean;
+  stretchOn: boolean;
+  mobilityLog: { id: string; date: string; minutes: number; kind: 'stretch' | 'session' }[];
 
   completeOnboarding: (p: Profile) => void;
   updateProfile: (patch: Partial<Profile>, regenerate?: boolean) => void;
@@ -56,7 +60,9 @@ interface State {
   swapExercise: (dayId: string, index: number, exId: string) => void;
   startWorkout: (dayIndex: number, entries?: SessionEntry[]) => void;
   setReminders: (r: ReminderPrefs) => void;
-  patchActive: (p: Partial<Pick<Active, 'warmupDone' | 'cardio'>>) => void;
+  patchActive: (p: Partial<Pick<Active, 'warmupDone' | 'cardio' | 'stretchDone'>>) => void;
+  setSessionPrefs: (p: { warmupOn?: boolean; stretchOn?: boolean }) => void;
+  logMobility: (minutes: number, kind: 'stretch' | 'session') => void;
   logSteps: (n: number, date?: string) => void;
   logCardio: (minutes: number, type: string) => void;
   removeCardio: (id: string) => void;
@@ -101,6 +107,9 @@ const initial = {
   cardioLog: [] as CardioLog[],
   phase: 'standard' as Phase,
   phaseWeeks: 0,
+  warmupOn: true,
+  stretchOn: true,
+  mobilityLog: [] as { id: string; date: string; minutes: number; kind: 'stretch' | 'session' }[],
 };
 
 export const useStore = create<State>()(
@@ -153,6 +162,8 @@ export const useStore = create<State>()(
         const a = get().active;
         if (a) set({ active: { ...a, ...p } });
       },
+      setSessionPrefs: (p) => set(p),
+      logMobility: (minutes, kind) => set({ mobilityLog: [...get().mobilityLog, { id: uid(), date: dayKey(), minutes: Math.round(minutes), kind }] }),
       logSteps: (n, date = dayKey()) => set({ steps: { ...get().steps, [date]: Math.max(0, Math.round(n)) } }),
       logCardio: (minutes, type) => set({ cardioLog: [...get().cardioLog, { id: uid(), date: dayKey(), minutes: Math.round(minutes), type }] }),
       removeCardio: (id) => set({ cardioLog: get().cardioLog.filter((x) => x.id !== id) }),
@@ -175,6 +186,7 @@ export const useStore = create<State>()(
         if (!active) return null;
         // Cardio ticked off in the session counts even if no sets were logged.
         if (active.cardio && active.cardio.minutes > 0) get().logCardio(active.cardio.minutes, active.cardio.type);
+        if (active.stretchDone) get().logMobility(10, 'stretch');
         const entries = active.entries
           .map((e) => ({ ...e, sets: e.sets.filter((st) => st.done) }))
           .filter((e) => e.sets.length);

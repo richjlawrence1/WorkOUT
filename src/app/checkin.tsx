@@ -6,6 +6,7 @@ import { WeighInCard } from '../components/WeighInCard';
 import { buildCheckIn } from '../lib/checkin';
 import { dayKey } from '../lib/dates';
 import { weeklyInsights } from '../lib/insights';
+import { mobilityTarget } from '../lib/mobility';
 import { todayIndex } from '../lib/mealplan';
 import { deltaParts } from '../lib/units';
 import { InsightCard } from '../components/InsightCard';
@@ -113,6 +114,8 @@ export default function CheckInScreen() {
             const ci = buildCheckIn(profile, now.weights, sessions, diary, { ...a, notes: notes.trim() }, {
               cardioMins: now.cardioMins, stepTarget: now.stepTarget, steps: now.steps, cardioLog: now.cardioLog,
               phase: now.phase, phaseWeeks: now.phaseWeeks, kcalTarget: selectTargets(now)!.kcal,
+              mobilityTarget: mobilityTarget(profile),
+              mobilityDone: now.mobilityLog.filter((x) => x.kind === 'session' && Date.now() - new Date(x.date).getTime() < 7 * 864e5).length,
             });
             addCheckIn(ci);
             if (ci.kcalDelta && useStore.getState().mealPlan) useStore.getState().buildMealPlan();
